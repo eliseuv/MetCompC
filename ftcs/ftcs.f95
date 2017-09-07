@@ -6,7 +6,7 @@ integer :: i, j
 real :: dx, dt, D, k
 real, dimension(:), allocatable :: f, fn
 
-open(unit=10,file='ftcs-fort-file')
+open(unit=10,file='ftcs-fort.dat')
 
 nx = 1e3
 dx = 1.d0
