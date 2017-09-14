@@ -21,7 +21,7 @@ print('k = ', k)
 if (k > 0 and k < 0.5):
 	print('Constant k is within bounds.')
 else:
-	print('Constant k is not within bounds')
+	print('Constant k is not within bounds.')
 	sys.exit(1)
 
 # Initial state

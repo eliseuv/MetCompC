@@ -1,7 +1,6 @@
 program ftcs
 implicit none
 
-integer :: k
 integer :: nx, nt
 integer :: i, j
 real :: dx, dt, D, k
