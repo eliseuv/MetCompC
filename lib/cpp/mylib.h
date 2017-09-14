@@ -58,9 +58,17 @@ public:
 		}
 	}
 
-	template<typename... Ts>
-	void set_spoints(p) {
+	template<typename T>
+	void set_spoints(T point) {
+		if (point > endpoints[0] && point < endpoints[1]) {
+			spoints.push_back(point);
+			nslices++;
+		}
+	}
 
+	template<typename T, typename... Ts>
+	void set_spoints(T point, Ts... points) {
+		set_spoints
 	}
 
 	// Getters
