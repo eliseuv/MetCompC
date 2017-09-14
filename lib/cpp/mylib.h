@@ -21,14 +21,21 @@ class Line {
 	size_t nslices;
 	std::vector<real> spoints;
 
+public:
+
+	// Constructors
 	Line(real v1, real v2): sliced(false), nslices(0) {set_endpoints(v1, v2);}
+
+	template<typename... Ts>
+	Line(real v1, real v2, Ts... points) {
+		Line(v1, v2);
+		set_points(points...);
+	}
 
 	Line(real v1, real v2, std::vector<real>& points) {
 		Line(v1, v2);
 		set_spoints(points);
 	}
-
-public:
 
 	// Setters
 	void set_endpoints(real v1, real v2) {
@@ -45,30 +52,29 @@ public:
 		} catch (const char * msg) {std::cerr << msg << std::endl;}
 	}
 
-	void set_spoints(std::vector<real> & points) {
-		size_t i, ntot = points.size();
-		real point;
-
-		for (i = 0; i < ntot; i++) {
-			point = points[i];
-			if (point > endpoints[0] && point < endpoints[1]) {
-				spoints.push_back(point);
- 				nslices++;
-			}
-		}
-	}
-
 	template<typename T>
-	void set_spoints(T point) {
+	void set_spoint(T point) {
 		if (point > endpoints[0] && point < endpoints[1]) {
 			spoints.push_back(point);
+			sliced = true;
 			nslices++;
 		}
 	}
 
 	template<typename T, typename... Ts>
 	void set_spoints(T point, Ts... points) {
-		set_spoints
+		set_spoint(point);
+		set_spoints(points...);
+	}
+
+	void set_spoints(std::vector<real> & points) {
+		size_t i, ntot = points.size();
+		real point;
+
+		for (i = 0; i < ntot; i++) {
+			point = points[i];
+			set_spoint(point);
+		}
 	}
 
 	// Getters
@@ -79,8 +85,19 @@ public:
 class Domain {
 
 	size_t dim;
-	std::vector<size_t> size;
+	std::vector<Line> lines;
 
-	Domain(){}
+public:
+
+	//Constructors
+	Domain(real v1, real v2): dim(1) {lines.push_back(Line(v1, v2));}
+
+
+
+	// Setters
+	void set_endpoint(real v1, real v2) {
+		if (dim == 1) lines[0].set_endpoints(v1, v2);
+		else std::cerr << "Error: Dimension > 1" << std::endl;
+	}
 
 };
