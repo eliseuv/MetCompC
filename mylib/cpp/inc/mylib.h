@@ -12,8 +12,8 @@ Real number structure with value and uncertainty.
 */
 struct Real {
 
-	bool _unc;		// _unc: this number has uncertainty
-	real _v, _u, _r;	// _v: value, _u: uncertainty, _r: ratio uncertainty/value
+	bool unc;		// unc: this number has uncertainty
+	real v, u, r;	// v: value, u: uncertainty, r: ratio uncertainty/value
 
 	// Constructors
 	Real(real);
@@ -21,15 +21,17 @@ struct Real {
 	// Destructor
 	~Real();
 
+	char* print(void);
+
 }; // Real number
 
 /* 1D domain */
 class Line {
 
-	std::vector<int> endpoints;
-	bool sliced;
-	size_t nslices;
-	std::vector<real> spoints;
+	std::vector<int> _endpoints;
+	bool _sliced;
+	size_t _nslices;
+	std::vector<real> _spoints;
 
 public:
 
@@ -60,8 +62,8 @@ public:
 /* Multidimensional domain */
 class Domain {
 
-	size_t dim;
-	std::vector<Line> lines;
+	size_t _dim;
+	std::vector<Line> _lines;
 
 public:
 
