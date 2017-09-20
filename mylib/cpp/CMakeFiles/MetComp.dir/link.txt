@@ -1,2 +1,0 @@
-/bin/ar qc libMetComp.a  CMakeFiles/MetComp.dir/src/MetComp.cpp.o
-/bin/ranlib libMetComp.a
