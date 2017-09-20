@@ -1,5 +1,5 @@
-#ifndef MYLIB_H
-#define MYLIB_H
+#ifndef METCOMP_H
+#define METCOMP_H
 
 #include <cstdlib>
 #include <iostream>
@@ -75,4 +75,4 @@ public:
 
 }; // Multidimensional domain
 
-#endif // MYLIB_H
+#endif // METCOMP_H

@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/drfreeman/Codes/MetCompC/mylib/cpp/inc/MetComp.h
+cstdlib
+-
+iostream
+-
+vector
+-
+
+/home/drfreeman/Codes/MetCompC/mylib/cpp/src/MetComp.cpp
+../inc/MetComp.h
+/home/drfreeman/Codes/MetCompC/mylib/cpp/inc/MetComp.h
+

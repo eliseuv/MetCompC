@@ -1,4 +1,4 @@
-#include "mylib.h"
+#include "../inc/MetComp.h"
 
 /* Real number */
 
