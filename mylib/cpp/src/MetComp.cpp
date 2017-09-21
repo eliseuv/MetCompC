@@ -1,19 +1,100 @@
 #include "../inc/MetComp.h"
 
+/* Support functions
+*/
+
+// Println
+template <typename T>
+void println(T str){std::cout << str;}
+
+template <typename T, typename... Ts>
+void println
+
+/*
+
+There you go. You had several mistakes in your code, you can see the comments between the lines below:
+
+#include <iostream>
+
+template <typename T>
+void print(T t) {
+   std::cout << t << std::endl;
+}
+
+// Base case, no args
+void f() {}
+
+// Split the parameter pack.
+// We want the first argument, so we can print it.
+// And the rest so we can forward it to the next call to f
+template <typename T, typename...Ts>
+void f(T &&first, Ts&&... rest) {
+    // print it
+    print(std::forward<T>(first));
+    // Forward the rest.
+    f(std::forward<Ts>(rest)...);
+}
+
+int main() {
+    f(2, 1, 4, 3, 5);
+}
+Note that using rvalue refs here makes no sense. You're not storing the parameters anywhere, so simply passing them by const reference should do it. That way you'd also avoid using std::forward just to keep the (useless) perfect forwarding.
+
+Therefore, you could rewrite f as follows:
+
+template <typename T, typename...Ts>
+void f(const T &first, const Ts&... rest) {
+    print(first);
+    f(rest...);
+}
+
+*/
+
+namespace math{
+
+  // p-Adder
+  template <typename T>
+  T padder(size_t p, T n){return n;}
+
+  template <typename T, typename... Ts>
+  T padder(size_t p, T n, Ts... ns){return n + padder(p, ns...);}
+
+  // p-norm
+  template <typename T>
+  real pnorm(size_t p, T n){
+    return n;
+  }
+
+  template <typename T, typename... Ts>
+  real pnorm(size_t p, T n, Ts... ns){}
+
+} // math
+
 /* Real number */
 
 // Constructors
-Real::Real(real v0)
-: unc(false), v(v0), u(0), r(0) {}
-
-Real::Real(real v0, real u0, real r0)
-: unc(true), v(v0), u(u0), r(r0){
+Real::Real(real v0, real r0)
+: unc(true), v(v0), u(std::abs(r0*v0)), r(std::abs(r0)){
 try{
-  if (v == 0) throw "Uncertainty undefined for value zero.";
-  else if (u == 0) {
-
+  if (v0 == 0){
+		unc = false;
+		u = 0;
+		r = 0;
+		throw "Uncertainty undefined for value zero.";
   }
+	else if (r0 == 0){
+		unc = false;
+		u = 0;
+		}
 } catch(const char * msg) {std::cerr << msg << std::endl;}
+}
+
+Real::Real(real v0)
+: Real(v0, 0) {unc = false;}
+
+// Operators overloading
+Real Real::operator+(const Real& y){
+	//return Real(v+y.v, );
 }
 
 // Destructor

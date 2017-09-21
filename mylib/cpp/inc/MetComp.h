@@ -4,8 +4,32 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <cmath>
+#include <utility>
 
 typedef double real;
+
+/* Support functions
+*/
+
+// Println
+template <typename T>
+void println(T);
+
+namespace math{
+
+	// Adder
+	template <typename T>
+	T adder(T);
+
+	template <typename T, typename... Ts>
+	T adder(T, Ts...);
+
+	// p-norm
+	template <typename... Ts>
+	real pnorm(size_t, Ts...);
+
+} // math
 
 /* Real number
 Real number structure with value and uncertainty.
@@ -13,13 +37,19 @@ Real number structure with value and uncertainty.
 struct Real {
 
 	bool unc;		// unc: this number has uncertainty
-	real v, u, r;	// v: value, u: uncertainty, r: ratio uncertainty/value
+	real v, u, r;		// v: value, u: uncertainty, r: ratio uncertainty/value
 
 	// Constructors
+	Real(real, real);
 	Real(real);
-	Real(real, real, real);
 	// Destructor
 	~Real();
+
+	// Operators overloading
+	Real operator+(const Real&);
+	Real operator-(const Real&);
+	Real operator*(const Real&);
+	Real operator/(const Real&);
 
 	char* print(void);
 
