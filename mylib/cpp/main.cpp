@@ -2,14 +2,13 @@
 
 int main(){
 
-Real myReal1(42, 0.013);
+Real myReal1(8.5, 0.4), myReal2(8.2, 0.3), myReal3 = myReal1+myReal2;
 
-std::cout << "unc = " << myReal1.unc << '\n';
-std::cout << "value = " << myReal1.v << '\n';
-std::cout << "uncertainty = " << myReal1.u << '\n';
-std::cout << "ratio = " << myReal1.r << '\n';
-
-println(3.8);
+supp::println(myReal3.tostr());
+myReal3 = myReal1;
+supp::println(myReal3.tostr());
+myReal3 = 5.6;
+supp::println(myReal3.tostr());
 
 return 0;
 

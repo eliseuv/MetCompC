@@ -3,72 +3,8 @@
 /* Support functions
 */
 
-// Println
-template <typename T>
-void println(T str){std::cout << str;}
-
-template <typename T, typename... Ts>
-void println
-
-/*
-
-There you go. You had several mistakes in your code, you can see the comments between the lines below:
-
-#include <iostream>
-
-template <typename T>
-void print(T t) {
-   std::cout << t << std::endl;
-}
-
-// Base case, no args
-void f() {}
-
-// Split the parameter pack.
-// We want the first argument, so we can print it.
-// And the rest so we can forward it to the next call to f
-template <typename T, typename...Ts>
-void f(T &&first, Ts&&... rest) {
-    // print it
-    print(std::forward<T>(first));
-    // Forward the rest.
-    f(std::forward<Ts>(rest)...);
-}
-
-int main() {
-    f(2, 1, 4, 3, 5);
-}
-Note that using rvalue refs here makes no sense. You're not storing the parameters anywhere, so simply passing them by const reference should do it. That way you'd also avoid using std::forward just to keep the (useless) perfect forwarding.
-
-Therefore, you could rewrite f as follows:
-
-template <typename T, typename...Ts>
-void f(const T &first, const Ts&... rest) {
-    print(first);
-    f(rest...);
-}
-
+/* Math
 */
-
-namespace math{
-
-  // p-Adder
-  template <typename T>
-  T padder(size_t p, T n){return n;}
-
-  template <typename T, typename... Ts>
-  T padder(size_t p, T n, Ts... ns){return n + padder(p, ns...);}
-
-  // p-norm
-  template <typename T>
-  real pnorm(size_t p, T n){
-    return n;
-  }
-
-  template <typename T, typename... Ts>
-  real pnorm(size_t p, T n, Ts... ns){}
-
-} // math
 
 /* Real number */
 
@@ -92,13 +28,78 @@ try{
 Real::Real(real v0)
 : Real(v0, 0) {unc = false;}
 
-// Operators overloading
-Real Real::operator+(const Real& y){
-	//return Real(v+y.v, );
-}
-
 // Destructor
 Real::~Real(){}
+
+// Operators overloading
+
+// Assignment
+
+// z = x + y
+Real Real::operator+(const Real& y){
+  Real z(v+y.v);
+  if (unc || y.unc){
+    z.unc = true;
+    z.u = math::pnorm(2, u, y.u);
+    z.r = z.u/z.v;
+  }
+  return z;
+}
+// z = x - y
+Real Real::operator-(const Real& y){
+  Real z(v-y.v);
+  if (unc || y.unc){
+    z.unc = true;
+    z.u = math::pnorm(2, u, y.u);
+    z.r = z.u/z.v;
+  }
+  return z;
+}
+// z = x * y
+Real Real::operator*(const Real& y){
+  Real z(v*y.v);
+  if (unc || y.unc){
+    z.unc = true;
+    z.u = math::pnorm(2, v*u, y.v*y.u);
+    z.r = z.u/z.v;
+  }
+  return z;
+}
+// z = x / y
+Real Real::operator/(const Real& y){
+try{
+  if (y.v == 0) throw "Cannot divide by zero! What the fu-";
+  Real z(v/y.v);
+  if (unc || y.unc){
+    z.unc = true;
+    z.u = math::pnorm(2, u/y.v, v*y.u/(y.v*y.v));
+    z.r = z.u/z.v;
+  }
+  return z;
+} catch(const char * msg){std::cerr << msg << '\n';}
+}
+// x < y
+bool Real::operator< (const Real& y){
+try{
+    real d = u+y.u/(std::abs(v-y.v));
+    if (d < 1) return (v < y.v);
+    else throw d;
+} catch(real d){std::cerr << "Uncertainty overlap: d = " << d << '\n'; return (v < y.v);}
+}
+// x > y
+bool Real::operator> (const Real& y){
+try{
+    real d = u+y.u/(std::abs(v-y.v));
+    if (d < 1) return (v > y.v);
+    else throw d;
+} catch(real d){std::cerr << "Uncertainty overlap: d = " << d << '\n'; return (v > y.v);}
+}
+
+// To string
+std::string Real::tostr(void){
+  if (unc) return (std::to_string(v) + " +/- " + std::to_string(u) + " (r=" + std::to_string(r) + ")");
+  else return std::to_string(v);
+}
 
 /* 1D domain */
 

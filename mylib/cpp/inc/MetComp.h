@@ -12,28 +12,44 @@ typedef double real;
 /* Support functions
 */
 
-// Println
-template <typename T>
-void println(T);
+namespace supp{
+
+	// Print
+	template <typename... Ts>
+	void print(Ts&&... strs){
+  	(std::cout << ... << strs);
+	}
+
+	// Println
+	template <typename... Ts>
+	void println(Ts&&... strs){
+  	(std::cout << ... << strs) << '\n';
+	}
+
+} // supp
+
+/* Math
+*/
 
 namespace math{
 
-	// Adder
-	template <typename T>
-	T adder(T);
+  // p-Adder
+  template <typename T>
+  T padder(size_t p, T n){return pow(n, p);}
 
-	template <typename T, typename... Ts>
-	T adder(T, Ts...);
+  template <typename T, typename... Ts>
+  T padder(size_t p, T n, Ts... ns){return pow(n, p) + padder(p, ns...);}
 
-	// p-norm
-	template <typename... Ts>
-	real pnorm(size_t, Ts...);
+  // p-norm
+  template <typename... Ts>
+  real pnorm(size_t p, Ts... ns){return pow(padder(p, ns...), 1.0/p);}
 
 } // math
 
 /* Real number
 Real number structure with value and uncertainty.
 */
+//template <typename T, typename... Ts>
 struct Real {
 
 	bool unc;		// unc: this number has uncertainty
@@ -45,13 +61,31 @@ struct Real {
 	// Destructor
 	~Real();
 
+	// Swap function
+	void swap(Real& first, Real& second){
+		std::swap(first.unc, second.unc);
+		std::swap(first.v, second.v);
+		std::swap(first.r, second.r);
+		std::swap(first.u, second.u);
+	}
+
 	// Operators overloading
+	// Assignment
+	template <typename T>
+	Real& operator=(const T& other){
+		Real temp(other);
+		swap(*this, temp);
+	  return *this;
+	}
 	Real operator+(const Real&);
 	Real operator-(const Real&);
 	Real operator*(const Real&);
 	Real operator/(const Real&);
+	bool operator<(const Real&);
+	bool operator>(const Real&);
 
-	char* print(void);
+	// To string
+	std::string tostr(void);
 
 }; // Real number
 
