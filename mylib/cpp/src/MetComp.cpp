@@ -104,61 +104,15 @@ std::string Real::tostr(void){
 /* 1D domain */
 
 // Constructors
-Line::Line(real v1, real v2): _sliced(false), _nslices(0) {set_endpoints(v1, v2);}
-
-template<typename... Ts>
-Line::Line(real v1, real v2, Ts... points) {
-  Line(v1, v2);
-	set_points(points...);
-}
-
-Line::Line(real v1, real v2, std::vector<real>& points) {
-	Line(v1, v2);
-	set_spoints(points);
-}
 
 // Setters
-void Line::set_endpoints(real v1, real v2) {
-try{
-  if (v1 == v2) throw "Empty line";
-	else if (v1 < v2) {
-	   _endpoints.push_back(v1);
-     _endpoints.push_back(v2);
-	}
-	else{
-	   _endpoints.push_back(v2);
-     _endpoints.push_back(v1);
-   }
-} catch (const char * msg) {std::cerr << msg << std::endl;}
-}
-
-template<typename T>
-void Line::set_spoint(T point) {
-  if (point > _endpoints[0] && point < _endpoints[1]) {
-    _spoints.push_back(point);
-    _sliced = true;
-    _nslices++;
-  }
-}
-
-template<typename T, typename... Ts>
-void Line::set_spoints(T point, Ts... points) {
-  set_spoint(point);
-	set_spoints(points...);
-}
-
-void Line::set_spoints(std::vector<real> & points) {
-	size_t i, ntot = points.size();
-	real point;
-
-	for (i = 0; i < ntot; i++) {
-	   point = points[i];
-     set_spoint(point);
-   }
-}
 
 // Getters
 real Line::get_length(void) {return (_endpoints[1] - _endpoints[0]);}
+
+std::vector<real>& Line::get_endpoints(void) {
+  return _endpoints;
+};
 
 /* Multidimensional domain */
 

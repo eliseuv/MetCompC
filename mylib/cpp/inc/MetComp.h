@@ -26,6 +26,21 @@ namespace supp{
   	(std::cout << ... << strs) << '\n';
 	}
 
+	// Sprintf
+	void sprintf(const char* format) {std::cout << format;}
+
+	template <typename T, typename... Targs>
+	void sprintf(const char* format, T value, Targs... Fargs){
+		for ( ; *format != '\0'; format++ ){
+			if ( *format == '$' ){
+				std::cout << value;
+				sprintf(format+1, Fargs...); // recursive call
+				return;
+			}
+			std::cout << *format;
+		}
+	}
+
 } // supp
 
 /* Math
@@ -92,7 +107,7 @@ struct Real {
 /* 1D domain */
 class Line {
 
-	std::vector<int> _endpoints;
+	std::vector<real> _endpoints;
 	bool _sliced;
 	size_t _nslices;
 	std::vector<real> _spoints;
@@ -100,26 +115,68 @@ class Line {
 public:
 
 	// Constructors
-	Line(real, real);
+	Line(real v1, real v2): _sliced(false), _nslices(0) {set_endpoints(v1, v2);}
 
-	template<typename... Ts>
-	Line(real, real, Ts...);
-
-	Line(real, real, std::vector<real> &);
-
-	// Setters
-	void set_endpoints(real, real);
-
-	template<typename T>
-	void set_spoint(T);
+	Line(real v1, real v2, std::vector<real>& points) {
+		Line(v1, v2);
+		set_spoints(points);
+	}
 
 	template<typename T, typename... Ts>
-	void set_spoints(T, Ts...);
+	Line(T point, Ts... points) {
+		const size_t n = sizeof...(Ts);
+		std::cout << n+1 << '\n';
+		if (n+1 > 1){
 
-	void set_spoints(std::vector<real> &);
+		}
+	}
+
+	// Setters
+	void set_endpoints(real v1, real v2) {
+		_endpoints.clear();
+	try{
+	  if (v1 == v2) throw "Empty line";
+		else if (v1 < v2) {
+		   _endpoints.push_back(v1);
+	     _endpoints.push_back(v2);
+		}
+		else{
+		   _endpoints.push_back(v2);
+	     _endpoints.push_back(v1);
+	   }
+	} catch (const char * msg) {std::cerr << msg << std::endl;}
+	}
+
+	template<typename T>
+	void set_spoint(T point) {
+	  if (point > _endpoints[0] && point < _endpoints[1]) {
+	    _spoints.push_back(point);
+	    _sliced = true;
+	    _nslices++;
+	  }
+	}
+
+	template<typename T, typename... Ts>
+	void set_spoints(T point, Ts... points) {
+	  set_spoint(point);
+		set_spoints(points...);
+	}
+
+	void set_spoints(std::vector<real> & points) {
+		size_t i, ntot = points.size();
+		real point;
+
+		for (i = 0; i < ntot; i++) {
+		   point = points[i];
+	     set_spoint(point);
+	   }
+	}
+
 
 	// Getters
 	real get_length(void);
+
+	std::vector<real>& get_endpoints(void);
 
 }; // 1D domain
 

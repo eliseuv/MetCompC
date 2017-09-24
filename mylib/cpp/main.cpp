@@ -2,13 +2,13 @@
 
 int main(){
 
-Real myReal1(8.5, 0.4), myReal2(8.2, 0.3), myReal3 = myReal1+myReal2;
+Line line1(2,10,3.2,5.5,8.4);
 
-supp::println(myReal3.tostr());
-myReal3 = myReal1;
-supp::println(myReal3.tostr());
-myReal3 = 5.6;
-supp::println(myReal3.tostr());
+supp::sprintf("$ + $ = $", 3, 5, 3+5);
+
+//supp::println(line1.get_length());
+
+//std::vector<real> v(line1.get_endpoints());
 
 return 0;
 
