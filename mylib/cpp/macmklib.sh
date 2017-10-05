@@ -32,7 +32,7 @@ echo_green "\nCompiling main program to object file..."
 clang main.cpp -v -std=c++1z -c -I ./inc -o ./obj/main.o
 
 echo_green "\nLinking object files..."
-ld ./obj/main.o -framework CoreFoundation -lSystem -L ./lib -lMetComp -o ./bin/main
+ld ./obj/main.o -macosx_version_min 10.11.6 -framework CoreFoundation -lSystem -L ./lib -lMetComp -o ./bin/main
 
 #$ ld main.o -framework CoreFoundation -lSystem -L. -lfoo_static -o test_static
 #clang main.cpp -v -std=c++1z -I ./inc -L ./lib -static -lMetComp -o ./bin/main

@@ -1,5 +1,4 @@
-#ifndef METCOMP_H
-#define METCOMP_H
+#pragma once
 
 #include <cstdlib>
 #include <iostream>
@@ -196,4 +195,4 @@ public:
 
 }; // Multidimensional domain
 
-#endif // METCOMP_H
+/* 
