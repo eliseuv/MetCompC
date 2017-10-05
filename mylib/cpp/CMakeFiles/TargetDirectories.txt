@@ -1,0 +1,3 @@
+/home/drfreeman/Codes/MetComp/mylib/cpp/CMakeFiles/rebuild_cache.dir
+/home/drfreeman/Codes/MetComp/mylib/cpp/CMakeFiles/MetComp.dir
+/home/drfreeman/Codes/MetComp/mylib/cpp/CMakeFiles/edit_cache.dir
