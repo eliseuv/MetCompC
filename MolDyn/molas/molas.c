@@ -8,7 +8,7 @@ real accel(real*, real*, real*, size_t);
 real pos(real*, real*, size_t);
 
 // Global
-const size_t n = 5;
+const size_t n = 10;
 
 int main(){
 
@@ -34,10 +34,11 @@ int main(){
 
   // Initial values
   for (i = 0; i < n; i++){
-    q[i] = 50*dx;
+    q[i] = 0;
     v[i] = 0;
     a[i] = accel(q, m, k, i);
   }
+  q[0] = 50*dx;
 
   // Velocity Verlet
   for (j = 0; j < nt; j++){
