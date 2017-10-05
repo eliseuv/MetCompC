@@ -14,7 +14,7 @@ int main(){
 
   const size_t nt = 1000;
   const real dx = 0.1, dt = 0.01;
-  real m[n], q[n], x[n][dim], v[n][dim], a[n][dim], a_next[n][dim];
+  real m[n], q[n], x[n][dim], v[n][dim], *a[n], a_next[n][dim];
   real b = 1, v0 = 10;
   size_t i, j;
 
@@ -37,7 +37,7 @@ int main(){
   x[0][1] = 0;
   v[0][0] = 0;
   v[0][1] = 0;
-  a[0] = &accel(x, m, q, 0);
+  a[0] = accel(x, m, q, 0);
 
   // Projectile
   x[1][0] = -10;
