@@ -1,1 +1,4 @@
-plot for [col=2:6] "molas.dat" u 1:col ps 0.1
+set key off
+set xrange [-10:10]
+set yrange [-10:10]
+plot for [i=1:50] "rbs.dat" u (column(2*i)):(column(2*i+1)) w l

@@ -2,8 +2,8 @@
 
 rm -f molas.dat
 
-clang molas.c -o molas
+gcc rbs.c -lm -o rbs
 
-time ./molas
+time ./rbs
 
-gnuplot molas.plot
+gnuplot -p rbs.plot
