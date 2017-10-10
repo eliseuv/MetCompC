@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
-rm -f molas.dat
+rm -f rbs.dat
 
 gcc rbs.c -lm -o rbs
 
-time ./rbs
+#time ./rbs
 
-gnuplot -p rbs.plot
+./rbs | gnuplot
+
+#gnuplot -p rbs.plot
