@@ -9,7 +9,20 @@
 typedef double real;
 
 /* Support functions
- */
+
+  print:
+  Print series of arguments
+
+  println:
+  Print series of arguments with a new line at the end
+
+  printf:
+  Print formated text
+
+  printfln:
+  Print formated text with a new line at the end
+
+  */
 namespace supp {
 
 // Print
@@ -22,15 +35,30 @@ template <typename... Ts> void println(Ts &&... strs) {
   (std::cout << ... << strs) << '\n';
 }
 
-// Sprintf
-void sprintf(const char *);
+// Printf
+void printf(const char *);
 
 template <typename T, typename... Targs>
-void sprintf(const char *format, T value, Targs... Fargs) {
+void printf(const char *format, T value, Targs... Fargs) {
   for (; *format != '\0'; format++) {
     if (*format == '$') {
       std::cout << value;
-      sprintf(format + 1, Fargs...); // recursive call
+      printf(format + 1, Fargs...); // recursive call
+      return;
+    }
+    std::cout << *format;
+  }
+}
+
+// Printfln
+void printfln(const char *);
+
+template <typename T, typename... Targs>
+void printfln(const char *format, T value, Targs... Fargs) {
+  for (; *format != '\0'; format++) {
+    if (*format == '$') {
+      std::cout << value;
+      printfln(format + 1, Fargs...); // recursive call
       return;
     }
     std::cout << *format;
@@ -39,14 +67,21 @@ void sprintf(const char *format, T value, Targs... Fargs) {
 
 } // namespace supp
 
-/* Math
- */
+/* General math functions
 
+  padder:
+  Sum of arguments to a power p
+
+  pnorm:
+  Returns p-norm using arguments
+
+  */
 namespace math {
+
+const real pi = std::atan2(0, -1);
 
 // p-Adder
 template <typename T> T padder(size_t p, T n) { return pow(n, p); }
-
 template <typename T, typename... Ts> T padder(size_t p, T n, Ts... ns) {
   return pow(n, p) + padder(p, ns...);
 }
@@ -57,6 +92,92 @@ template <typename... Ts> real pnorm(size_t p, Ts... ns) {
 }
 
 } // namespace math
+
+/* Complex number */
+
+struct complex {
+  bool imag;   // comp: this number has imaginary part
+  real re, im; // re: real part, im: imaginary part
+
+  // Constructors
+  // Default constructor
+  complex(void);
+  // Both real and imaginary parts given
+  complex(real, real);
+  // Only phase given
+  complex(real);
+  // Real modulus and complex phase given
+  complex(real, complex);
+  // Complex "modulus" and real phase given (complex + rotation)
+  complex(complex, real);
+
+  // Destructor
+  ~complex();
+
+  // Swap function
+  void swap(complex &);
+
+  // Operators overloading
+  // Assignment from a real number
+  complex &operator=(const real &);
+  // Assignment
+  complex &operator=(const complex &);
+  // Unary minus
+  complex operator-(void) const;
+  // Addition with a real number
+  complex operator+(const real &) const;
+  // Addition
+  complex operator+(const complex &) const;
+  // Subtraction by a real number
+  complex operator-(const real &) const;
+  // Subtraction
+  complex operator-(const complex &) const;
+  // Multiplication by a real number
+  complex operator*(const real &)const;
+  // Multiplication
+  complex operator*(const complex &)const;
+  // Division by a real number
+  complex operator/(const real &) const;
+  // Division
+  complex operator/(const complex &) const;
+
+  // Conjugate
+  complex conj(void) const;
+
+  // Absolute value
+  real abs(void) const;
+
+  // Phase
+  real phi(void) const;
+
+  // To string
+  std::string tostr(void) const;
+
+}; // Complex number
+
+/* Overload real operators */
+
+/* Complex functions */
+
+// Costant imaginary unit
+const complex Iu(0, 1);
+
+// Complex exponential
+complex exp(complex);
+
+// Complex logarithm
+complex log(complex);
+
+// Complex sine
+complex sin(complex);
+
+// Complex cosine
+complex cos(complex);
+
+// Complex tangent
+complex tan(complex);
+
+// Complex functions
 
 /* Real number
 Real number structure with value and uncertainty.
@@ -77,12 +198,7 @@ struct Real {
   void swap(Real &);
 
   // Operators overloading
-  // Assignment
-  template <typename T> Real &operator=(const T &other) {
-    Real temp(other);
-    this->swap(temp);
-    return *this;
-  }
+  Real &operator=(const Real &);
   Real operator+(const Real &);
   Real operator-(const Real &);
   Real operator*(const Real &);
@@ -96,6 +212,7 @@ struct Real {
 }; // Real number
 
 /* 1D domain */
+
 class Line {
 
   std::vector<real> _endpoints;
@@ -182,7 +299,7 @@ public:
 
   std::vector<real> &get_endpoints(void);
 
-}; // 1D domain
+}; // Line
 
 /* Multidimensional domain */
 class Domain {
@@ -198,8 +315,3 @@ public:
   void set_endpoint(real, real);
 
 }; // Multidimensional domain
-<<<<<<< HEAD
-
-/* 
-=======
->>>>>>> b6a00a48a0ceef0a11234cfcaca05c37b5b49705

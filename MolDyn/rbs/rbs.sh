@@ -4,7 +4,7 @@ rm -f rbs.dat
 
 gcc rbs.c -lm -o rbs
 
-#time ./rbs
+#./rbs
 
 ./rbs | gnuplot
 
