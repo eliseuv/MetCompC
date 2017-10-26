@@ -20,23 +20,28 @@ rm -Rf bin lib obj
 mkdir bin lib obj
 
 # Compile library to object code
-echo_green "\nCompiling library to object file..."
-clang ./src/MetComp.cpp -v -std=c++1z -c -I ./inc -o ./obj/MetComp.o
+printf '\n'
+echo_green "Compiling library to object file..."
+time clang ./src/MetComp.cpp -std=c++1z -c -I ./inc -o ./obj/MetComp.o
 
 # Generate library file
-echo_green "\nGenerating library archive file..."
-ar rcsv ./lib/libMetComp.a ./obj/MetComp.o
+printf '\n'
+echo_green "Generating library archive file..."
+time ar rcsv ./lib/libMetComp.a ./obj/MetComp.o
 
 # Use library in test program
-echo_green "\nCompiling main program to object file..."
-clang main.cpp -v -std=c++1z -c -I ./inc -o ./obj/main.o
+printf '\n'
+echo_green "Compiling main program to object file..."
+time clang ./src/main.cpp -std=c++1z -c -I ./inc -o ./obj/main.o
 
-echo_green "\nLinking object files..."
-ld ./obj/main.o -macosx_version_min 10.11.6 -framework CoreFoundation -lSystem -L ./lib -lMetComp -o ./bin/main
+printf '\n'
+echo_green "Linking object files..."
+time ld ./obj/main.o -macosx_version_min 10.11.6 -framework CoreFoundation -lSystem -L ./lib -lMetComp -o ./bin/main
 
 #$ ld main.o -framework CoreFoundation -lSystem -L. -lfoo_static -o test_static
 #clang main.cpp -v -std=c++1z -I ./inc -L ./lib -static -lMetComp -o ./bin/main
 
 # Run test program
-echo_green "\nRunning test program..."
-./bin/main
+printf '\n'
+echo_green "Running test program..."
+time ./bin/main

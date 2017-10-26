@@ -10,6 +10,7 @@ Model:
 MODEL_IDEAL_GAS     Ideal gas
 MODEL_COULOMB       Coulomb's interaction
 MODEL_LENNARD_JONES Lennard Jones potential
+MODEL_EXT_FORCE     Add external force to the problem
 
 Initial conditions:
 
@@ -27,11 +28,13 @@ Output:
 OUT_FILE            print results to file
 OUT_GNUPLOT_VIS     using gnuplot interactive terminal
 OUT_ENERGY          outputs energy over time in a separate file
+OUT_GNUPLOT_ENERGY  plot enery along in the interactive terminal
 
 */
 
 // Model
-#define MODEL_COULOMB
+#define MODEL_LENNARD_JONES
+//#define MODEL_EXT_FORCE
 // Initial conditions
 #define INIT_RAND_PART
 // Boundary conditions
@@ -44,11 +47,14 @@ typedef double real;
 
 // Global
 
+// Constants
+const real pi = 3.14159265359;
+const real k_B = 1.38064852e-23;
 // Number of dimensions
-const size_t dim = 2;
+const size_t dim = 3;
 // Number of particles
 #ifdef INIT_RAND_PART
-const size_t n = 100;
+const size_t n = 50;
 #endif
 #ifdef INIT_RUTHERFORD
 const size_t n = 2;
@@ -60,6 +66,8 @@ real randreal(real, real);
 int randint(int, int);
 // Calculate acceleration using Coulombs law
 real * accel(real [n][dim], real [n], real [n], size_t);
+// Maxwell-Boltzmann distribution
+real v_max_boltz(real, real);
 
 int main(){
 
@@ -72,7 +80,7 @@ int main(){
   real space[dim][2];
 
   // Spatial and time step size
-  const real dx = 0.01, dt = 0.0001;
+  const real dx = 0.0001, dt = 0.01;
 
   // Particle properties
   real m[n], q[n];
@@ -86,7 +94,7 @@ int main(){
   #ifdef OUT_FILE
   // Open output file
   FILE * data;
-  data = fopen("rbs.dat", "w");
+  data = fopen("particles.dat", "w");
   if (data == NULL){
     printf("\nError opening file.\n");
     exit (EXIT_FAILURE);
@@ -115,7 +123,7 @@ int main(){
   // Generate random particles
   srand (time ( NULL));
   for (i = 0; i < n; i++) {
-    do m[i] = randreal(0, 10);
+    do m[i] = 5;//randreal(0, 10);
     while (fabs(m[i]) < 0.1);
     q[i] = (float)randint(-1, 1);
     for (k = 0; k < dim; k++) {
@@ -187,16 +195,23 @@ int main(){
     #ifdef OUT_GNUPLOT_VIS
     // Setup GNUPLOT
     printf("set key off\n");
-    #ifdef OUT_ENERGY
+    #ifdef OUT_GNUPLOT_ENERGY
     printf("set multiplot layout 1,2\n");
     printf("set xrange [0:1]\n");
-    printf("set yrange [-0.5:0.5]\n");
+    printf("set yrange [-100:100]\n");
     printf("plot \"energy.dat\" w l\n");
     #endif
     printf("set xrange [%f:%f]\n", space[0][0], space[0][1]);
     printf("set yrange [%f:%f]\n", space[1][0], space[1][1]);
-    // Call interactive terminal
-    printf("plot \"-\" w p pt 7 ps 1\n");
+    if (dim == 3){
+      printf("set zrange [%f:%f]\n", space[2][0], space[2][1]);
+      printf("set view equal xyz\n");
+      // Call interactive terminal
+      printf("splot \"-\" w p pt 9 ps 1\n");
+    }
+    else
+      // Call interactive terminal
+      printf("plot \"-\" w p pt 9 ps 1\n");
     #endif
 
     // Loop on particles
@@ -266,7 +281,7 @@ int main(){
     fprintf(data, "\n");
     #endif
     #ifdef OUT_GNUPLOT_VIS
-    printf("\ne\n");
+    printf("e\n");
     #endif
 
   }
@@ -290,8 +305,27 @@ int randint(int min, int max){
     return (rand()%(max-min+1) + min);
 }
 
+real v_max_boltz(real T, real m){
+  real x1, x2, w, y, sigma;
+
+  do{
+    x1 = randreal(-1.0, 1.0);
+    x1 = randreal(-1.0, 1.0);
+    w = x1*x1 + x2*x2;
+  } while (w >= 1.0);
+
+  w = sqrt( (-2.0 * log( w ) ) / w );
+  y = x1 * w;
+
+  sigma = sqrt(k_B*T/m);
+
+  return y*sigma;
+
+}
+
 real * accel(real x[n][dim], real m[n], real q[n], size_t r){
   real *a = malloc(sizeof(real)*dim);
+  real *extf = malloc(sizeof(real)*dim);
   real d, s[dim];
   size_t i, k;
 
@@ -327,7 +361,7 @@ real * accel(real x[n][dim], real m[n], real q[n], size_t r){
 
   #ifdef MODEL_LENNARD_JONES
   // Interaction constants
-  real epsilon = 20, sigma = 50;
+  real epsilon = 1, sigma = 1;
   // Loop on the other particles
   for (i = 0; i < n; i++) { if (i != r) {
 
@@ -343,6 +377,13 @@ real * accel(real x[n][dim], real m[n], real q[n], size_t r){
         a[k] += (48*epsilon*s[k]/(d*m[r]))*((pow(sigma,12)/pow(d,6)) - (0.5*pow(sigma,6)/pow(d,3)));
       }
   }}
+  #endif
+
+  #ifdef MODEL_EXT_FORCE
+  for (k = 0; k < dim; k++) {
+    extf[k] = 10*(5 - x[r][k]);
+  }
+  a[k] += extf[k]/m[r];
   #endif
 
   return a;

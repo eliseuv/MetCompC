@@ -375,15 +375,15 @@ y       : previous value of y
 args... : other arguments for f
 */
 template <typename Ty, typename... Ts>
-void rk(real h, Ty (*f)(real, Ty, Ts...), real &t, Ty &y, Ts... args) {
+void rk4(real h, Ty (*f)(real, Ty, Ts...), real &t, Ty &y, Ts... args) {
   Ty k1, k2, k3, k4;
-  Ty::iterator it_y;
+  typename Ty::iterator it_y;
 
   // Calculate coefficients
-  k1 = f(t_n, y_n, args...);
-  k2 = f(t_n + h / 2, y_n + h * k1 / 2, args...);
-  k3 = f(t_n + h / 2, y_n + h * k2 / 2, args...);
-  k4 = f(t_n + h, y_n + h * k3, args...);
+  k1 = f(t, y, args...);
+  k2 = f(t + h / 2, y + h * k1 / 2, args...);
+  k3 = f(t + h / 2, y + h * k2 / 2, args...);
+  k4 = f(t + h, y + h * k3, args...);
 
   // Calculate next step
   for (it_y = y.begin(); it_y != y.end(); it_y++)
@@ -408,7 +408,7 @@ f       : f(t,y,args)
 t_n     : previous value of t
 y_n     : previous value of y
 args... : other arguments for f
-*/
+*//*
 template <typename Ty, typename... Ts>
 Ty rk(size_t r, real h, Ty (*f)(real, Ty, Ts...), real t_n, Ty y_n,
       Ts... args) {
@@ -421,3 +421,4 @@ Ty rk(size_t r, real h, Ty (*f)(real, Ty, Ts...), real t_n, Ty y_n,
     //*it_k = f(t_n + c[] * h, y_n + h, args...);
   }
 }
+*/
