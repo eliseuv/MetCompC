@@ -21,8 +21,9 @@ program="$1"  #
 library="$2"  # MetComp
 compiler="$3" # clang, gcc, intel
 opt="$4"      # Optimization: 0, 1, 2, 3
+debug="-debug full"
 
-echo_green "Compiling lib$library and $program with $compiler -O$opt"
+echo_green "Compiling lib$library and $program with $compiler $debug -O$opt"
 
 printf '\n'
 echo_purple "Creating directories..."
@@ -32,7 +33,7 @@ mkdir -p obj lib bin
 printf '\n'
 echo_purple "Compiling library to object file..."
 if [ $compiler = "gcc" ]; then
-  g++ -Wall -c -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
+  g++ -Wall -c $debug -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
 elif [ $compiler = "clang" ]; then
   clang -v -c -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
 elif [ $compiler = "intel" ]; then
@@ -58,7 +59,7 @@ elif [ $compiler = "intel" ]; then
   time icpc -Wall -O$opt -L ./lib -I ./inc $program.cpp ./lib/lib$library.a -o ./bin/$program
 elif [ $compiler = "clang" ]; then
   echo_purple "Compiling $program to object file..."
-  clang -v -c -O$opt ./src/$program.cpp -std=c++17 -I ./inc -o ./obj/$program.o
+  clang -v -c $debug -O$opt ./src/$program.cpp -std=c++17 -I ./inc -o ./obj/$program.o
   echo_purple "Linking $program and $library..."
   ld -v ./obj/$program.o -framework CoreFoundation -lSystem -L. -l$library -o ./bin/$program
 fi

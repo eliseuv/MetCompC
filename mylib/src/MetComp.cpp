@@ -3,13 +3,11 @@
 /* Support functions */
 
 namespace supp {
-
 // Printf
 void printf(const char *format) { std::cout << format; }
 
 // Printfln
 void printfln(const char *format) { std::cout << format << std::endl; }
-
 } // namespace supp
 
 /* Math */
@@ -336,34 +334,187 @@ std::string Real::tostr(void) {
 /* Line */
 
 // Constructors
-Line::Line(real v1, real v2) : _npoints(2) { set_endpoints(v1, v2); }
 
-Line::Line(real v1, real v2, std::vector<real> &points) {
-  Line(v1, v2);
-  add_points(points);
+// Endpoints given
+Line::Line(real point1, real point2) {
+  try {
+    if (point1 == point2)
+      throw 0;
+    _points.push_back(point1);
+    _n_points = 1;
+    add_point(point2);
+  } catch (...) {
+    std::cerr << "Error: endpoints are equal" << '\n';
+  }
+}
+
+// Vector with points given
+Line::Line(std::vector<real> &points) {
+  try {
+    // Number of arguments passed
+    size_t n_points = points.size();
+    // Add first point
+    _points.push_back(points.back());
+    _n_points = 1;
+    points.pop_back();
+    // Add other points
+    add_points(points);
+    // Check if line is created
+    if (_points.size() < 2)
+      throw 0;
+    // Check if all points were valid
+    if (_points.size() < n_points) {
+      std::cout << "Warning: Some points were not created" << std::endl;
+    }
+  } catch (...) {
+    std::cerr << "Error: no line created" << '\n';
+  }
+}
+
+// Clear
+void Line::_clear(void) {
+  _points.clear();
+  _n_points = 0;
 }
 
 // Adders
 
+// Add a point
+void Line::add_point(real point) {
+  // Iterate on points and find pointer to first element larger than point
+  std::vector<real>::iterator it_points =
+      std::upper_bound(_points.begin(), _points.end(), point);
+  // Insert point in the correct place if its not already there
+  if (*(it_points - 1) != point) {
+    _points.insert(it_points, point);
+    _n_points++;
+  }
+}
+
+// Add a vector of points
+void Line::add_points(std::vector<real> &points) {
+  // Iterate on vector and add each point
+  std::vector<real>::iterator it_points;
+  for (it_points = points.begin(); it_points != points.end(); it_points++)
+    add_point(*it_points);
+}
+
+// Deleters
+
+// Delete a point
+void Line::delete_point(real point) {
+  try {
+    // Are there enough points
+    if (_points.size() < 3)
+      throw point;
+    // Look for given point
+    std::vector<real>::iterator it_points =
+        std::find(_points.begin(), _points.end(), point);
+    // Delete it if this point exists
+    if (*it_points == point)
+      _points.erase(it_points);
+    else
+      std::cerr << "Warning: Point " << point << " not defined in this line."
+                << '\n';
+  } catch (real err_point) {
+    std::cerr << "Error: This line only have two points" << '\n';
+    std::cerr << "Point " << err_point << " not deleted." << '\n';
+    return;
+  }
+}
+
+// Delete points (list)
+
+// Delete points (vevtor)
+void Line::delete_points(std::vector<real> &points) {
+  // Iterate over vector and delete each point
+  std::vector<real>::iterator it_points = points.begin();
+  for (; it_points != points.end(); it_points++)
+    delete_point(*it_points);
+}
+
 // Setters
-void Line::set_endpoints(real v1, real v2) {}
+
+// Set endpoints
+void Line::set_endpoints(real point1, real point2) {
+  std::vector<real>::iterator it_points;
+  // Check order of parameters
+  if (point2 < point1)
+    std::swap(point1, point2);
+  // Find lower bound, put point1 there and erase everything before that
+  it_points = std::lower_bound(_points.begin(), _points.end(), point1);
+  if (*it_points != point1)
+    it_points = _points.insert(it_points, point1);
+  _points.erase(_points.begin(), it_points);
+  // Find upper bound, put point2 there and erase everything after that
+  it_points = std::upper_bound(_points.begin(), _points.end(), point2);
+  if (*it_points != point2)
+    it_points = _points.insert(it_points, point2);
+  _points.erase(++it_points, _points.end());
+}
+
+// Set points (list)
+
+// Set points (vector)
+void Line::set_points(std::vector<real> &points) {
+  _clear();
+  try {
+    // Number of arguments passed
+    size_t n_points = points.size();
+    // Add first point
+    _points.push_back(points.back());
+    _n_points = 1;
+    points.pop_back();
+    // Add other points
+    add_points(points);
+    // Check if line is created
+    if (_points.size() < 2)
+      throw 0;
+    // Check if all points were valid
+    if (_points.size() < n_points) {
+      std::cout << "Warning: Some points were not created" << std::endl;
+    }
+  } catch (...) {
+    std::cerr << "Error: no line created" << '\n';
+  }
+}
 
 // Getters
-real Line::get_length(void) { return (_endpoints[1] - _endpoints[0]); }
 
-std::vector<real> &Line::get_endpoints(void) { return _endpoints; };
+real Line::length(void) { return (_points.back() - _points.front()); }
+
+// Debugging
+
+// Show all points in order for debugging
+void Line::print_points(void) {
+  std::cerr << "\nprint_points" << '\n';
+  std::vector<real>::iterator it_points;
+  for (it_points = _points.begin(); it_points != _points.end(); it_points++)
+    std::cerr << "*it_points = " << *it_points << '\n';
+  std::cerr << "\n";
+}
 
 // Line
 
 /* Multidimensional domain */
 
 // Constructors
-Domain::Domain(real v1, real v2) : _dim(1) { _lines.push_back(Line(v1, v2)); }
 
-// Setters
-void Domain::set_endpoint(real v1, real v2) {
-  if (_dim == 1)
-    _lines[0].set_endpoints(v1, v2);
-  else
-    std::cerr << "Error: Dimension > 1" << std::endl;
+// One line given
+Domain::Domain(Line line) : _dim(1) { _lines.push_back(line); }
+
+// Getters
+
+// Get Dimension
+size_t Domain::dim(void) { return _dim; }
+
+// Debugging
+
+// Print all points in each line
+void Domain::print_lines(void) {
+  std::cerr << "\nprint_lines" << '\n';
+  std::vector<Line>::iterator it_lines;
+  for (it_lines = _lines.begin(); it_lines != _lines.end(); it_lines++)
+    it_lines->print_points();
+  std::cerr << "\n";
 }

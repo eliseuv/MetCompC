@@ -2,11 +2,15 @@
 
 int main() {
 
-  // Line line1(1.2, 5.6, 6.4, 3);
+  Line line1(5, 5.3, 4.5, 8);
 
-  // std::cout << line1.get_length() << '\n';
+  line1.print_points();
 
-  supp::printfln("$ + $ = $", 3, 4, 3 + 4);
+  Domain domain1(line1);
+
+  std::cout << domain1.dim() << '\n';
+
+  domain1.print_lines();
 
   return 0;
 }
