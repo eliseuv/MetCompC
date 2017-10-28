@@ -54,7 +54,7 @@ const real k_B = 1.38064852e-23;
 const size_t dim = 3;
 // Number of particles
 #ifdef INIT_RAND_PART
-const size_t n = 50;
+const size_t n = 100;
 #endif
 #ifdef INIT_RUTHERFORD
 const size_t n = 2;
@@ -80,7 +80,7 @@ int main(){
   real space[dim][2];
 
   // Spatial and time step size
-  const real dx = 0.0001, dt = 0.01;
+  const real dx = 1e-6, dt = 1e-3;
 
   // Particle properties
   real m[n], q[n];

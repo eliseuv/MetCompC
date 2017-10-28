@@ -21,6 +21,7 @@ program="$1"  #
 library="$2"  # MetComp
 compiler="$3" # clang, gcc, intel
 opt="$4"      # Optimization: 0, 1, 2, 3
+plot="$5"
 debug="-debug full"
 
 echo_green "Compiling lib$library and $program with $compiler $debug -O$opt"
@@ -33,11 +34,11 @@ mkdir -p obj lib bin
 printf '\n'
 echo_purple "Compiling library to object file..."
 if [ $compiler = "gcc" ]; then
-  g++ -Wall -c $debug -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
+  time g++ -Wall -c -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
 elif [ $compiler = "clang" ]; then
-  clang -v -c -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
+  time clang -v -c -O$opt ./src/$library.cpp -std=c++17 -I ./inc -o ./obj/$library.o
 elif [ $compiler = "intel" ]; then
-  time icpc -Wall -c -O$opt ./src/$library.cpp -o ./obj/$library.o
+  time icpc -Wall $debug -c -O$opt ./src/$library.cpp -o ./obj/$library.o
 fi
 
 # Generate library file
@@ -46,28 +47,35 @@ echo_purple "Generating library archive file..."
 if [ $compiler = "gcc" ] ||  [ $compiler = "intel" ]; then
   time ar rcs ./lib/lib$library.a ./obj/$library.o
 elif [ $compiler = "clang" ]; then
-  libtool -static ./obj/$library.o -o ./lib/lib$library.a
+  time libtool -static ./obj/$library.o -o ./lib/lib$library.a
 fi
 
 # Compile program and link
 printf '\n'
 if [ $compiler = "gcc" ]; then
   echo_purple "Compiling $program and linking to $library..."
-  g++ -Wall -O$opt $program.cpp -std=c++17 -I ./inc -L ./lib -static -l$library -o ./bin/$program
+  time g++ -Wall -O$opt $program.cpp -std=c++17 -I ./inc -L ./lib -static -l$library -o ./bin/$program
 elif [ $compiler = "intel" ]; then
   echo_purple "Compiling $program and linking to $library..."
-  time icpc -Wall -O$opt -L ./lib -I ./inc $program.cpp ./lib/lib$library.a -o ./bin/$program
+  time icpc -Wall $debug -O$opt ./src/$program.cpp -L ./lib -I ./inc ./lib/lib$library.a -o ./bin/$program
 elif [ $compiler = "clang" ]; then
   echo_purple "Compiling $program to object file..."
-  clang -v -c $debug -O$opt ./src/$program.cpp -std=c++17 -I ./inc -o ./obj/$program.o
+  time clang -v -c $debug -O$opt ./src/$program.cpp -std=c++17 -I ./inc -o ./obj/$program.o
   echo_purple "Linking $program and $library..."
-  ld -v ./obj/$program.o -framework CoreFoundation -lSystem -L. -l$library -o ./bin/$program
+  time ld -v ./obj/$program.o -framework CoreFoundation -lSystem -L. -l$library -o ./bin/$program
 fi
 
 # Run test program
 printf '\n'
 echo_purple "Running $program..."
 printf '\n'
-time ./bin/$program
+if [[ $plot = "intplot" ]]; then
+  ./bin/$program | gnuplot -p
+elif [[ $plot = "plot" ]]; then
+  time ./bin/$program
+  gnuplot -p ./plot/$program.plot
+elif [[ $plot = "" ]]; then
+  time ./bin/$program
+fi
 
 printf '\n'

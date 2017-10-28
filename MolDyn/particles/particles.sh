@@ -2,10 +2,11 @@
 
 rm -f particles.dat
 
-gcc particles.c -lm -o particles
+gcc -O3 particles.c -lm -o particles
+#icc -O3 particles.c -lm -o particles
 
-./particles | head
+#./particles | head
 
-#./particles | gnuplot
+./particles | gnuplot
 
 #gnuplot -p particles.plot

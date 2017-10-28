@@ -143,6 +143,14 @@ real complex::abs(void) const {
     return math::pnorm(2, re, im);
 }
 
+// Absolute value squared
+real complex::abs2(void) const {
+  if (!imag)
+    return re * re;
+  else
+    return math::padder(2, re, im);
+}
+
 // Phase
 real complex::phi(void) const {
   if (!imag) {
@@ -206,10 +214,10 @@ complex tan(complex val) {
 
 // Complex functions
 
-/* Real number */
+/* Measurement */
 
 // Constructors
-Real::Real(real v0, real r0)
+Measurement::Measurement(real v0, real r0)
     : unc(true), v(v0), u(std::abs(r0 * v0)), r(std::abs(r0)) {
   try {
     if (v0 == 0) {
@@ -226,13 +234,13 @@ Real::Real(real v0, real r0)
   }
 }
 
-Real::Real(real v0) : Real(v0, 0) { unc = false; }
+Measurement::Measurement(real v0) : Measurement(v0, 0) { unc = false; }
 
 // Destructor
-Real::~Real() {}
+Measurement::~Measurement() {}
 
 // Swap function
-void Real::swap(Real &other) {
+void Measurement::swap(Measurement &other) {
   std::swap(unc, other.unc);
   std::swap(v, other.v);
   std::swap(r, other.r);
@@ -242,15 +250,15 @@ void Real::swap(Real &other) {
 // Operators overloading
 
 // Assignment
-Real &Real::operator=(const Real &other) {
-  Real temp(other);
+Measurement &Measurement::operator=(const Measurement &other) {
+  Measurement temp(other);
   this->swap(temp);
   return *this;
 }
 
 // z = x + y
-Real Real::operator+(const Real &y) {
-  Real z(v + y.v);
+Measurement Measurement::operator+(const Measurement &y) {
+  Measurement z(v + y.v);
   if (unc || y.unc) {
     z.unc = true;
     z.u = math::pnorm(2, u, y.u);
@@ -259,8 +267,8 @@ Real Real::operator+(const Real &y) {
   return z;
 }
 // z = x - y
-Real Real::operator-(const Real &y) {
-  Real z(v - y.v);
+Measurement Measurement::operator-(const Measurement &y) {
+  Measurement z(v - y.v);
   if (unc || y.unc) {
     z.unc = true;
     z.u = math::pnorm(2, u, y.u);
@@ -269,8 +277,8 @@ Real Real::operator-(const Real &y) {
   return z;
 }
 // z = x * y
-Real Real::operator*(const Real &y) {
-  Real z(v * y.v);
+Measurement Measurement::operator*(const Measurement &y) {
+  Measurement z(v * y.v);
   if (unc || y.unc) {
     z.unc = true;
     z.u = math::pnorm(2, v * u, y.v * y.u);
@@ -279,11 +287,11 @@ Real Real::operator*(const Real &y) {
   return z;
 }
 // z = x / y
-Real Real::operator/(const Real &y) {
+Measurement Measurement::operator/(const Measurement &y) {
   try {
     if (y.v == 0)
       throw "Cannot divide by zero! What the fu-";
-    Real z(v / y.v);
+    Measurement z(v / y.v);
     if (unc || y.unc) {
       z.unc = true;
       z.u = math::pnorm(2, u / y.v, v * y.u / (y.v * y.v));
@@ -296,7 +304,7 @@ Real Real::operator/(const Real &y) {
   }
 }
 // x < y
-bool Real::operator<(const Real &y) {
+bool Measurement::operator<(const Measurement &y) {
   try {
     real d = u + y.u / (std::abs(v - y.v));
     if (d < 1)
@@ -309,7 +317,7 @@ bool Real::operator<(const Real &y) {
   }
 }
 // x > y
-bool Real::operator>(const Real &y) {
+bool Measurement::operator>(const Measurement &y) {
   try {
     real d = u + y.u / (std::abs(v - y.v));
     if (d < 1)
@@ -323,13 +331,146 @@ bool Real::operator>(const Real &y) {
 }
 
 // To string
-std::string Real::tostr(void) {
+std::string Measurement::tostr(void) {
   if (unc)
     return (std::to_string(v) + " +/- " + std::to_string(u) +
             " (r=" + std::to_string(r) + ")");
   else
     return std::to_string(v);
 }
+// Measurement
+
+/* linspace */
+
+// Constructors
+
+// Only endpoints given
+Linspace::Linspace(real a, real b) {
+  try {
+    if (a == b)
+      throw 0;
+    _start = std::min(a, b);
+    _end = std::max(a, b);
+    _n_points = 2;
+    _step = _end - _start;
+    _pos = 0;
+    _val = _start;
+  } catch (...) {
+    std::cerr << "Error: start point and end point are the same" << '\n';
+  }
+}
+
+// Endpoints and number of points given
+Linspace::Linspace(real a, real b, size_t n) {
+  try {
+    if (a == b)
+      throw 0;
+    if (n < 2)
+      throw - 1;
+    _end = std::max(a, b);
+    _n_points = n;
+    _step = (_end - _start) / (_n_points - 1);
+    _pos = 0;
+    _val = _start;
+  } catch (int err) {
+    if (err == 0)
+      std::cerr << "Error: start point and end point are the same" << '\n';
+    if (err == -1)
+      std::cerr << "Error: number of points must be greater than 1" << '\n';
+  }
+}
+
+// Endpoints and step given
+Linspace::Linspace(real a, real b, real step) {
+  try {
+    if (a == b)
+      throw 0;
+    _start = std::min(a, b);
+    _end = std::max(a, b);
+    _step = step;
+    _n_points = std::ceil((_end - _start) / _step);
+    _pos = 0;
+    _val = _start;
+  } catch (...) {
+    std::cerr << "Error: start point and end point are the same" << '\n';
+  }
+}
+
+// Setters
+
+// Set Endpoints
+void Linspace::set_endpoints(real a, real b) {
+  try {
+    if (a == b)
+      throw 0;
+    _start = std::min(a, b);
+    _end = std::max(a, b);
+    _step = (_end - _start) / (_n_points - 1);
+    _pos = 0;
+    _val = _start;
+  } catch (...) {
+    std::cerr << "Error: start point and end point are the same" << '\n';
+  }
+}
+
+// Set number of points
+void Linspace::set_n_points(size_t n) {
+  try {
+    if (n < 2)
+      throw 0;
+    _n_points = n;
+    _step = (_end - _start) / (_n_points - 1);
+    _pos = 0;
+    _val = _start;
+  } catch (...) {
+    std::cerr << "Error: Number of points must be greater than 2\n"
+              << "n_points = " << n << '\n';
+  }
+}
+
+// Set step size
+void Linspace::set_step(real step) {
+  try {
+    if (step <= 0)
+      throw 0;
+    _step = step;
+    _end = _start + _n_points * _step;
+    _pos = 0;
+    _val = _start;
+  } catch (...) {
+    std::cerr << "Error: Step must be positive\n"
+              << "step = " << step << '\n';
+  }
+}
+
+// Getters
+
+// Get start
+real Linspace::start(void) { return _start; }
+
+// Get end
+real Linspace::end(void) { return _end; }
+
+// Get number of points
+size_t Linspace::n_points(void) { return _n_points; }
+
+// Get step
+real Linspace::step(void) { return _step; }
+
+// Iterate
+
+// Increment
+void operator++(void) {
+  try {
+    if (_pos == _n_points)
+      throw 0;
+
+  } catch (...) {
+  }
+}
+
+// Decrement
+void operator--(void);
 
 /* Line */
 
@@ -343,6 +484,20 @@ Line::Line(real point1, real point2) {
     _points.push_back(point1);
     _n_points = 1;
     add_point(point2);
+  } catch (...) {
+    std::cerr << "Error: endpoints are equal" << '\n';
+  }
+}
+
+// Endpoints and number of points given
+Line::Line(real point1, real point2, size_t n_points) {
+  try {
+    if (point1 == point2)
+      throw 0;
+    _points.push_back(point1);
+    _n_points = 1;
+    add_point(point2);
+
   } catch (...) {
     std::cerr << "Error: endpoints are equal" << '\n';
   }
@@ -481,7 +636,11 @@ void Line::set_points(std::vector<real> &points) {
 
 // Getters
 
+// Get length
 real Line::length(void) { return (_points.back() - _points.front()); }
+
+// Get number of points
+size_t Line::n_points(void) { return _n_points; }
 
 // Debugging
 
@@ -518,3 +677,5 @@ void Domain::print_lines(void) {
     it_lines->print_points();
   std::cerr << "\n";
 }
+
+// Differential Equations
