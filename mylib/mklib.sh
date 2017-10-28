@@ -15,6 +15,7 @@ echo_grey() { echo "$(tput setaf 8)$*$(tput setaf 7)"; }
 echo_red() { echo "$(tput setaf 9)$*$(tput setaf 7)"; }
 
 clear
+clear
 
 # Select parameters
 program="$1"  #

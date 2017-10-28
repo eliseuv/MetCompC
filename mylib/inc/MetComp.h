@@ -220,6 +220,7 @@ struct Measurement {
 
 /* Linearly spaced line */
 class Linspace {
+
   // Endpoints
   real _start, _end;
   // Number of points
@@ -267,23 +268,22 @@ public:
 
   // Get step
   real step(void);
-
-  // Iterate
-
-  // Increment
-  void operator++(void);
-
-  // Decrement
-  void operator--(void);
 };
 
-/* Real line */
-class Line {
+/* Real function
+  f : R -> T
+ */
+template <typename T> class Line {
+
+  typedef std::pair<real, T> Point;
+  typedef std::vector<Point> RFunc;
 
   // Number of points in the line
   size_t _n_points;
-  // Points on the line
-  std::vector<real> _points;
+  // Finite elements function : R -> T
+  RFunc _function;
+  // Iterator
+  typename RFunc::iterator _ptr;
 
   // Clear
   void _clear(void);
@@ -292,50 +292,157 @@ public:
   // Constructors
 
   // Endpoints given
-  Line(real, real);
-
-  // Endpoints and number of points given
-  Line(real, real, size_t);
-
-  // Vector with points given
-  Line(std::vector<real> &);
-
-  // List of points given
-  template <typename... Ts> Line(real point, Ts... points) {
+  Line(real value1, real value2) {
     try {
-      // Number of arguments passed
-      const size_t n_points = sizeof...(Ts) + 1;
-      // Add first point
-      _points.push_back(point);
-      _n_points = 1;
-      // Add other points
-      add_points(points...);
-      // Check if line is created
-      if (_points.size() < 2)
+      // Test interval
+      if (value1 == value2)
         throw 0;
-      // Check if all points were valid
-      if (_points.size() < n_points) {
-        std::cout << "Warning: Some points were not created" << std::endl;
-      }
+      // Sort
+      if (value1 > value2)
+        std::swap(value1, value2);
+
+      // Add first point
+      _function.push_back(Point(value1, 0.0));
+      _function.push_back(Point(value2, 0.0));
+      _n_points = 2;
+
+      // Set pointer
+      _ptr = _function.begin();
+
     } catch (...) {
-      std::cerr << "Error: no line created" << '\n';
+      std::cerr << "Error: endpoints are equal\n";
+    }
+  }
+
+  // Endpoints and number of points given (equally spaced)
+  Line(real value1, real value2, size_t n_points) {
+    try {
+      // Test interval
+      if (value1 == value2)
+        throw 0;
+      // Sort
+      if (value1 > value2)
+        std::swap(value1, value2);
+
+      size_t i;
+      real step = (value2 - value1) / (n_points - 1);
+
+      // Add first point
+      _function.push_back(Point(value1, 0.0));
+      _n_points = 1;
+
+      // Add other points
+      for (i = 1; i < n_points; i++) {
+        _function.push_back(Point(value1 + i * step, 0.0));
+        _n_points++;
+      }
+
+      // Set pointer
+      _ptr = _function.begin();
+
+    } catch (...) {
+      std::cerr << "Error: endpoints are equal\n";
+    }
+  }
+
+  // Endpoints, number of points and analytical function given (equally spaced)
+  template <typename... Ts>
+  Line(real value1, real value2, size_t n_points, T (*f)(real, Ts...),
+       Ts... args) {
+    try {
+      // Test interval
+      if (value1 == value2)
+        throw 0;
+      // Sort
+      if (value1 > value2)
+        std::swap(value1, value2);
+
+      size_t i;
+      real step = (value2 - value1) / (n_points - 1);
+      real x_val;
+      T y_val;
+
+      // Add first point
+      y_val = f(value1, args...);
+      _function.push_back(Point(value1, y_val));
+      _n_points = 1;
+
+      // Add other points
+      for (i = 1; i < n_points; i++) {
+        x_val = value1 + i * step;
+        y_val = f(x_val, args...);
+        _function.push_back(Point(x_val, y_val));
+        _n_points++;
+      }
+
+      // Set pointer
+      _ptr = _function.begin();
+
+    } catch (...) {
+      std::cerr << "Error: endpoints are equal\n";
     }
   }
 
   // Adders
 
-  // Add a point
-  void add_point(real);
-
-  // Add a list of points
-  void add_points(void) { return; } // Final function call
-  template <typename... Ts> void add_points(real point, Ts... points) {
-    add_point(point);
-    add_points(points...);
+  // Add a point (domain only)
+  void add_point(real value) {
+    // Iterate on function and find pointer to first element larger than value
+    typename RFunc::iterator it_points =
+        std::upper_bound(_function.begin(), _function.end(), value,
+                         [](real v, Point const &p) { return (v < p.first); });
+    // Insert point in the correct place if its not already there
+    if ((it_points - 1)->first != value) {
+      _function.insert(it_points, Point(value, 0.0));
+      _n_points++;
+    } else
+      std::cout << "Warning: domain point " << value << " already in line."
+                << '\n';
   }
 
-  // Add a vector of points
-  void add_points(std::vector<real> &);
+  // Add a point
+  void add_point(real domain, T value) {
+    // Iterate on function and find pointer to first element larger than value
+    typename RFunc::iterator it_points =
+        std::upper_bound(_function.begin(), _function.end(), domain,
+                         [](real v, Point const &p) { return (v < p.first); });
+    // Insert point in the correct place if its not already there
+    if ((it_points - 1)->first != domain) {
+      _function.insert(it_points, Point(domain, value));
+      _n_points++;
+    } else {
+      (it_points - 1)->second = value;
+      std::cout << "Warning: domain point " << domain << " already in line."
+                << '\n';
+    }
+  }
+
+  // Add a point (Point given)
+  void add_point(Point point) {
+    // Iterate on function and find pointer to first element larger than value
+    typename RFunc::iterator it_points =
+        std::upper_bound(_function.begin(), _function.end(), point.first,
+                         [](real v, Point const &p) { return (v < p.first); });
+    // Insert point in the correct place if its not already there
+    if ((it_points - 1)->first != point.first) {
+      _function.insert(it_points, point);
+      _n_points++;
+    } else {
+      (it_points - 1)->second = point.second;
+      std::cout << "Warning: domain point " << point.first
+                << " already in line." << '\n';
+    }
+  }
+
+  // Add a vector of points using an analytical function
+  template <typename... Ts>
+  void add_points(std::vector<real> &x_vec, T (*f)(real, Ts...), Ts... args) {
+    T y_val;
+    for (const auto &x_val : x_vec) {
+      y_val = f(x_val, args...);
+      add_point(x_val, y_val);
+    }
+  }
 
   // Deleters
 
@@ -355,7 +462,22 @@ public:
   // Setters
 
   // Set endpoints
-  void set_endpoints(real, real);
+  void set_endpoints(real value1, real value2) {
+    std::vector<real>::iterator it_points;
+    // Check order of parameters
+    if (value1 > value2)
+      std::swap(value1, value2);
+    // Find lower bound, put point1 there and erase everything before that
+    it_points = std::lower_bound(_points.begin(), _points.end(), point1);
+    if (*it_points != point1)
+      it_points = _points.insert(it_points, point1);
+    _points.erase(_points.begin(), it_points);
+    // Find upper bound, put point2 there and erase everything after that
+    it_points = std::upper_bound(_points.begin(), _points.end(), point2);
+    if (*it_points != point2)
+      it_points = _points.insert(it_points, point2);
+    _points.erase(++it_points, _points.end());
+  }
 
   // Set points (list)
   template <typename... Ts> void set_points(real point, Ts... points) {
@@ -386,20 +508,27 @@ public:
   // Getters
 
   // Get length
-  real length(void);
+  real length(void) {
+    return (_function.back().first - _function.front().first);
+  }
 
   // Get number of points
-  size_t n_points(void);
+  size_t n_points(void) { return _n_points; }
 
   // Debugging
 
   // Show all points in order for debugging
-  void print_points(void);
-
+  void print_points(void) {
+    std::cerr << "\nprint_points:" << '\n';
+    // typename RFunc::iterator it;
+    for (const auto &it : _function)
+      std::cerr << it.first << '\t' << it.second << '\n';
+    std::cerr << "\n";
+  }
 }; // Line
 
 /* Multidimensional real domain */
-
+/*
 class Domain {
 
   // Domain imension
@@ -423,6 +552,7 @@ public:
   void print_lines(void);
 
 }; // Multidimensional domain
+*/
 
 // Differential Equations
 
