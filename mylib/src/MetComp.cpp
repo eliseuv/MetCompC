@@ -163,7 +163,7 @@ real complex::phi(void) const {
 }
 
 // To string
-std::string complex::tostr(void) const {
+complex::operator std::string() const {
   if (!imag)
     return std::to_string(re);
   else if (im > 0)
@@ -331,13 +331,14 @@ bool Measurement::operator>(const Measurement &y) {
 }
 
 // To string
-std::string Measurement::tostr(void) {
+Measurement::operator std::string() const {
   if (unc)
     return (std::to_string(v) + " +/- " + std::to_string(u) +
             " (r=" + std::to_string(r) + ")");
   else
     return std::to_string(v);
 }
+
 // Measurement
 
 /* linspace */

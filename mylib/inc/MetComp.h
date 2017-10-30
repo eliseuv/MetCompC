@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -160,6 +161,7 @@ struct complex {
 
   // To string
   std::string tostr(void) const;
+  operator std::string() const;
 
 }; // Complex number
 
@@ -215,6 +217,7 @@ struct Measurement {
 
   // To string
   std::string tostr(void);
+  operator std::string() const;
 
 }; // Measurement
 
@@ -273,7 +276,10 @@ public:
 /* Real function
   f : R x Ts... -> T
  */
-template <typename T, typename... Ts> class Line {
+template <typename T> class Line {
+
+  // Vector of real number
+  typedef std::vector<real> R_vec;
 
   // Point (real, T)
   typedef std::pair<real, T> Point;
@@ -281,130 +287,57 @@ template <typename T, typename... Ts> class Line {
   typedef std::vector<Point> Map;
   // Iterator over finite elements
   typedef typename Map::iterator Elem_it;
-  // Pointer to an analytical function
-  typedef T (*Function)(real, Ts...);
-  // Vector of poiters to analytical functions
-  // typedef std::vector<Function> Func_vec;
-  // Arguments to analytical function
-  typedef std::tuple<Ts...> Args;
 
-  // Analyitcal function
-  Function _function;
-  Args _args;
-  // Number of points in the line
-  size_t _n_points;
+  // Input analytical function
+  // typedef std::function<T(real, Ts...)> InFunction;
+
+  // Analytical function stored
+  typedef std::function<T(real)> Function;
+  // Vector of poiters to analytical functions
+  typedef std::vector<Function> Func_vec;
+
+  // Analyitcal part
+  /*
+  struct Analytical {
+    size_t _n_functions;
+    Func_vec _functions;
+    Args _args;
+  };
+  */
+
+  // Analytical functions
+  Func_vec _functions;
+  // Vector with slice points (division of regions between analytical functions)
+  R_vec _s_points;
   // Step size in which the domain is diveded
   real _step;
   // Finite elements function evaluations
-  Map _map_values;
+  Map _elements;
   // Iterator over the finite elements
   Elem_it _ptr;
 
   // Clear
   void _clear(void) {
     _ptr = nullptr;
-    _function = _zero_function;
-    _map_values.clear();
-    _n_points = 0;
+    _elements.clear();
   }
 
-  // Adders
-
-  // Add a point (domain only)
-  void _add_point(real value) {
-    // Iterate on function and find pointer to first element larger than value
-    typename Map::iterator it_points =
-        std::upper_bound(_map_values.begin(), _map_values.end(), value,
-                         [](real v, Point const &p) { return (v < p.first); });
-    // Insert point in the correct place if its not already there
-    if ((it_points - 1)->first != value) {
-      _map_values.insert(it_points, Point(value, 0.0));
-      _n_points++;
-    } else
-      std::cout << "Warning: domain point " << value << " already in line."
-                << '\n';
+  // Lower bound
+  Elem_it _lower_bound(real value) {
+    return std::lower_bound(
+        _elements.begin(), _elements.end(), value,
+        [](Point const &p, real x) { return (p.first < x); });
   }
 
-  // Add a point
-  void _add_point(real domain, T value) {
-    // Iterate on function and find pointer to first element larger than value
-    typename Map::iterator it_points =
-        std::upper_bound(_map_values.begin(), _map_values.end(), domain,
-                         [](real v, Point const &p) { return (v < p.first); });
-    // Insert point in the correct place if its not already there
-    if ((it_points - 1)->first != domain) {
-      _map_values.insert(it_points, Point(domain, value));
-      _n_points++;
-    } else {
-      (it_points - 1)->second = value;
-      std::cout << "Warning: domain point " << domain << " already in line."
-                << '\n';
-    }
+  // Upper bound
+  Elem_it _upper_bound(real value) {
+    return std::upper_bound(
+        _elements.begin(), _elements.end(), value,
+        [](real x, Point const &p) { return (x < p.first); });
   }
 
-  // Add a point (Point given)
-  void _add_point(Point point) {
-    // Iterate on function and find pointer to first element larger than value
-    typename Map::iterator it_points =
-        std::upper_bound(_map_values.begin(), _map_values.end(), point.first,
-                         [](real v, Point const &p) { return (v < p.first); });
-    // Insert point in the correct place if its not already there
-    if ((it_points - 1)->first != point.first) {
-      _map_values.insert(it_points, point);
-      _n_points++;
-    } else {
-      (it_points - 1)->second = point.second;
-      std::cout << "Warning: domain point " << point.first
-                << " already in line." << '\n';
-    }
-  }
-
-  // Add a vector of points using an analytical function
-  template <typename... Ts>
-  void _add_points(std::vector<real> &x_vec, T (*f)(real, Ts...), Ts... args) {
-    T y_val;
-    for (const auto &x_val : x_vec) {
-      y_val = f(x_val, args...);
-      _add_point(x_val, y_val);
-    }
-  }
-
-  // Deleters
-  void _delete_point(real point) {
-    try {
-      // Are there enough points
-      if (_points.size() < 3)
-        throw point;
-      // Look for given point
-      std::vector<real>::iterator it_points =
-          std::find(_points.begin(), _points.end(), point);
-      // Delete it if this point exists
-      if (*it_points == point)
-        _points.erase(it_points);
-      else
-        std::cerr << "Warning: Point " << point << " not defined in this line."
-                  << '\n';
-    } catch (real err_point) {
-      std::cerr << "Error: This line only have two points" << '\n';
-      std::cerr << "Point " << err_point << " not deleted." << '\n';
-      return;
-    }
-  }
-
-  // Delete points (list)
-  void _delete_points(void) { return; } // Final function call
-  template <typename... Ts> void delete_points(real point1, Ts... points) {
-    _delete_point(point1);
-    _delete_points(points...);
-  }
-
-  // Delete points (vevtor)
-  void _delete_points(std::vector<real> &points) {
-    // Iterate over vector and delete each point
-    std::vector<real>::iterator it_points = points.begin();
-    for (; it_points != points.end(); it_points++)
-      _delete_point(*it_points);
-  }
+  // Insert s_point on correct location
+  size_t _insert_s_point(real value) {}
 
 public:
   // Constructors
@@ -420,18 +353,17 @@ public:
         std::swap(value1, value2);
 
       // Clear analytical function
-      _function = nullptr;
-      _args = Args();
+      Function function = [](real x) { return 0; };
+      _functions.pushback(function);
 
       // Add points
-      _map_values.push_back(Point(value1, 0.0));
-      _map_values.push_back(Point(value2, 0.0));
+      _elements.push_back(Point(value1, 0.0));
+      _elements.push_back(Point(value2, 0.0));
 
-      _n_points = 2;
       _step = value2 - value1;
 
       // Set element pointer
-      _ptr = _map_values.begin();
+      _ptr = _elements.begin();
 
     } catch (...) {
       std::cerr << "Error: endpoints are equal\n";
@@ -451,23 +383,21 @@ public:
       size_t i;
 
       // Clear analytical function
-      _function = nullptr;
+      Function function = [](real x) { return 0; };
+      _functions.pushback(function);
 
       // Set step
       _step = (value2 - value1) / (n_points - 1);
 
       // Add first point
-      _map_values.push_back(Point(value1, 0.0));
-      _n_points = 1;
+      _elements.push_back(Point(value1, 0.0));
 
       // Add other points
-      for (i = 1; i < n_points; i++) {
-        _map_values.push_back(Point(value1 + i * _step, 0.0));
-        _n_points++;
-      }
+      for (i = 1; i < n_points; i++)
+        _elements.push_back(Point(value1 + i * _step, 0.0));
 
       // Set element pointer
-      _ptr = _map_values.begin();
+      _ptr = _elements.begin();
 
     } catch (...) {
       std::cerr << "Error: endpoints are equal\n";
@@ -475,6 +405,7 @@ public:
   }
 
   // Endpoints, number of points and analytical function given (equally spaced)
+  template <typename... Ts>
   Line(real value1, real value2, size_t n_points, T (*f)(real, Ts...),
        Ts... args) {
     try {
@@ -490,27 +421,25 @@ public:
       T y_val;
 
       // Set analytical function
-      _function = f;
-      std::tuple<Ts...> temp;
+      Function function = [f, args...](real x) { return f(x, args...); };
+      _functions.push_back(function);
 
       // Set step
       _step = (value2 - value1) / (n_points - 1);
 
       // Add first point
-      y_val = f(value1, args...);
-      _map_values.push_back(Point(value1, y_val));
-      _n_points = 1;
+      y_val = _functions[0](value1);
+      _elements.push_back(Point(value1, y_val));
 
       // Add other points
       for (i = 1; i < n_points; i++) {
         x_val = value1 + i * _step;
-        y_val = _function(x_val, args...);
-        _map_values.push_back(Point(x_val, y_val));
-        _n_points++;
+        y_val = _functions[0](x_val);
+        _elements.push_back(Point(x_val, y_val));
       }
 
       // Set pointer
-      _ptr = _map_values.begin();
+      _ptr = _elements.begin();
 
     } catch (...) {
       std::cerr << "Error: endpoints are equal\n";
@@ -525,7 +454,7 @@ public:
 
   // Increment pointer
   Line &operator++() {
-    if (_ptr != _map_values.end())
+    if (_ptr != _elements.end() - 1)
       _ptr++;
     else
       std::cout << "Warning: Already at the end of line." << '\n';
@@ -534,20 +463,20 @@ public:
 
   // Decrement pointer
   Line &operator--() {
-    if (_ptr != _map_values.begin())
+    if (_ptr != _elements.begin())
       _ptr--;
     else
       std::cout << "Warning: Already at the beginning of line." << '\n';
     return *this;
   }
 
-  // Return point in index1
+  // Return point in index
   Point operator[](size_t index) {
     try {
-      if (index >= _n_points)
+      if (index >= _elements.size())
         throw 0;
 
-      auto pointer = _map_values.begin() + index;
+      auto pointer = _elements.begin() + index;
 
       return *pointer;
 
@@ -557,13 +486,13 @@ public:
     }
   }
 
-  // Jump to position
-  void jumpto(size_t index) {
+  // Jump to index
+  void operator()(size_t index) {
     try {
-      if (index >= _n_points)
+      if (index >= _elements.size())
         throw 0;
 
-      auto pointer = _map_values.begin() + index;
+      auto pointer = _elements.begin() + index;
       _ptr = pointer;
 
     } catch (...) {
@@ -572,6 +501,109 @@ public:
   }
 
   // Setters
+
+  // Set analytical function everywhere
+  template <typename... Ts> void set_function(T (*f)(real, Ts...), Ts... args) {
+    // Prepare analytical function
+    Function function = [f, args...](real x) { return f(x, args...); };
+    // Set values
+    for (auto &element : _elements)
+      element.second = function(element.first);
+  }
+
+  // Set analytical function on interval
+  template <typename... Ts>
+  void set_function(real value1, real value2, T (*f)(real, Ts...), Ts... args) {
+    // Sort
+    if (value1 > value2)
+      std::swap(value1, value2);
+    // Prepare analytical function
+    Function function = [f, args...](real x) { return f(x, args...); };
+
+    // Find lower bound
+    Elem_it element_low = _lower_bound(value1);
+
+    // Find upper bound
+    Elem_it element_high = _upper_bound(value2);
+
+    // Fill old domain
+    Elem_it it_elements;
+    for (it_elements = element_low; it_elements != element_high;
+         ++it_elements) {
+      it_elements->second = function(it_elements->first);
+    }
+
+    // Auxiliary variables
+    real x_val;
+    T y_val;
+
+    // Fill to the left
+    x_val = _elements.front().first - _step;
+    // Fill with zeros
+    while (x_val > value2) {
+      _elements.insert(_elements.begin(), Point(x_val, 0.0));
+      x_val -= _step;
+    }
+    // Fill function
+    while (x_val >= value1) {
+      y_val = function(x_val);
+      _elements.insert(_elements.begin(), Point(x_val, y_val));
+      x_val -= _step;
+    }
+
+    // Fill to the right
+    x_val = _elements.back().first + _step;
+    // Fill with zeros
+    while (x_val < value1) {
+      _elements.push_back(Point(x_val, 0.0));
+
+      std::cerr << x_val << '\t' << 0.0 << '\n';
+
+      x_val += _step;
+    }
+    // Fill function
+    while (x_val <= value2) {
+      y_val = function(x_val);
+      _elements.push_back(Point(x_val, y_val));
+      x_val += _step;
+    }
+
+    // Set slice points
+
+    R_vec::iterator it_s_points;
+    typename Func_vec::iterator it_func;
+
+    // Find lower bound
+    it_s_points = std::lower_bound(_s_points.begin(), _s_points.end(), value1);
+    if (_lower_bound(value1) != _elements.begin()) {
+      it_s_points = _s_points.insert(it_s_points, value1);
+      size_t pos1 = std::distance(_s_points.begin(), it_s_points);
+    }
+
+    // Find upper bound
+    if (it_s_points != _s_points.end()) { // There are s_points already
+      // Test subsequent addresses
+      bool added = false;
+      for (++it_s_points; it_s_points != _s_points.end();) {
+        if (*it_s_points > value2) {
+          it_s_points = _s_points.insert(it_s_points, value2);
+          size_t pos2 = std::distance(_s_points.begin(), it_s_points);
+          added = true;
+          break;
+        }
+        it_s_points = _s_points.erase(it_s_points);
+      }
+      if (!added && (value2 < _elements.back().first))
+        _s_points.push_back(value2);
+    } else {
+      // No slice points before
+      _functions.insert(_functions.begin(), function);
+      if (value2 < _elements.back().first)
+        _s_points.push_back(value2);
+      else
+        _functions.erase(_functions.end());
+    }
+  }
 
   // Set endpoints
   void set_endpoints(real value1, real value2) {
@@ -588,77 +620,17 @@ public:
       T y_val;
 
       // Set step
-      _step = (value2 - value1) / (_n_points - 1);
-
-      // Add first point
-      y_val = _function(value1, args...);
-      _map_values.push_back(Point(value1, y_val));
-      _n_points = 1;
-
-      // Add other points
-      for (i = 1; i < n_points; i++) {
-        x_val = value1 + i * _step;
-        y_val = _function(x_val, args...);
-        _map_values.push_back(Point(x_val, y_val));
-        _n_points++;
-      }
+      _step = (value2 - value1) / (_elements.size() - 1);
 
       // Set pointer
-      _ptr = _map_values.begin();
-    }
-  }
-
-  // Set points (list)
-  template <typename... Ts> void set_points(real point, Ts... points) {
-    _clear();
-    try {
-      // Number of arguments passed
-      const size_t n_points = sizeof...(Ts) + 1;
-      // Add first point
-      _points.push_back(point);
-      _n_points = 1;
-      // Add other points
-      add_points(points...);
-      // Check if line is created
-      if (_points.size() < 2)
-        throw 0;
-      // Check if all points were valid
-      if (_points.size() < n_points) {
-        std::cout << "Warning: Some points were not created" << std::endl;
-      }
-    } catch (...) {
-      std::cerr << "Error: no line created" << '\n';
-    }
-  }
-
-  // Set points (vector)
-  void set_points(std::vector<real> &points) {
-    _clear();
-    try {
-      // Number of arguments passed
-      size_t n_points = points.size();
-      // Add first point
-      _points.push_back(points.back());
-      _n_points = 1;
-      points.pop_back();
-      // Add other points
-      add_points(points);
-      // Check if line is created
-      if (_points.size() < 2)
-        throw 0;
-      // Check if all points were valid
-      if (_points.size() < n_points) {
-        std::cout << "Warning: Some points were not created" << std::endl;
-      }
-    } catch (...) {
-      std::cerr << "Error: no line created" << '\n';
+      _ptr = _elements.begin();
     }
   }
 
   // Getters
 
   // Analytical function associated
-  T function(real x, Ts... args) {
+  T function(real x) {
     if (_function == nullptr)
       return 0;
     return _function(x, args...);
@@ -666,11 +638,14 @@ public:
 
   // Get length
   real length(void) {
-    return (_map_values.back().first - _map_values.front().first);
+    return (_elements.back().first - _elements.front().first);
   }
 
   // Get number of points
-  size_t n_points(void) { return _n_points; }
+  size_t n_points(void) { return _elements.size(); }
+
+  // Get number of analytical functions
+  size_t n_func(void) { return _functions.size(); }
 
   // Debugging
 
@@ -678,10 +653,20 @@ public:
   void print_points(void) {
     std::cerr << "\nprint_points:" << '\n';
     // typename Map::iterator it;
-    for (const auto &it : _map_values)
-      std::cerr << it.first << '\t' << it.second << '\n';
+    for (const auto &element : _elements)
+      std::cerr << element.first << '\t' << element.second << '\n';
     std::cerr << "\n";
   }
+
+  // Show all s_points in order for debugging
+  void print_s_points(void) {
+    std::cerr << "\nprint_s_points:" << '\n';
+    // typename Map::iterator it;
+    for (const auto &s_point : _s_points)
+      std::cerr << s_point << '\n';
+    std::cerr << "\n";
+  }
+
 }; // Line
 
 /* Multidimensional real domain */
