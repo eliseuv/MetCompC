@@ -424,15 +424,15 @@ public:
       Function function = [f, args...](real x) { return f(x, args...); };
       _functions.push_back(function);
 
+      // Set s_points
+      _s_points.push_back(value1);
+      _s_points.push_back(value2);
+
       // Set step
       _step = (value2 - value1) / (n_points - 1);
 
-      // Add first point
-      y_val = _functions[0](value1);
-      _elements.push_back(Point(value1, y_val));
-
-      // Add other points
-      for (i = 1; i < n_points; i++) {
+      // Add points
+      for (i = 0; i < n_points; i++) {
         x_val = value1 + i * _step;
         y_val = _functions[0](x_val);
         _elements.push_back(Point(x_val, y_val));
@@ -451,6 +451,36 @@ public:
   // Deference pointer
   real x(void) { return _ptr->first; }
   T y(void) { return _ptr->second; }
+
+  // Value at index
+  real x(size_t index) {
+    try {
+      if (index >= _elements.size())
+        throw 0;
+
+      auto pointer = _elements.begin() + index;
+
+      return pointer->first;
+
+    } catch (...) {
+      std::cerr << "Error: Out of bounds. Returning value at pointer." << '\n';
+      return _ptr->first;
+    }
+  }
+  T y(size_t index) {
+    try {
+      if (index >= _elements.size())
+        throw 0;
+
+      auto pointer = _elements.begin() + index;
+
+      return pointer->second;
+
+    } catch (...) {
+      std::cerr << "Error: Out of bounds. Returning value at pointer." << '\n';
+      return _ptr->second;
+    }
+  }
 
   // Increment pointer
   Line &operator++() {
@@ -517,91 +547,58 @@ public:
     // Sort
     if (value1 > value2)
       std::swap(value1, value2);
+
     // Prepare analytical function
     Function function = [f, args...](real x) { return f(x, args...); };
 
-    // Find lower bound
-    Elem_it element_low = _lower_bound(value1);
-
-    // Find upper bound
-    Elem_it element_high = _upper_bound(value2);
-
-    // Fill old domain
-    Elem_it it_elements;
-    for (it_elements = element_low; it_elements != element_high;
-         ++it_elements) {
-      it_elements->second = function(it_elements->first);
-    }
+    // Store number of points
+    size_t n_points = _elements.size();
 
     // Auxiliary variables
-    real x_val;
+    size_t i, j;
+    real x_val, x_0;
     T y_val;
 
-    // Fill to the left
-    x_val = _elements.front().first - _step;
-    // Fill with zeros
-    while (x_val > value2) {
-      _elements.insert(_elements.begin(), Point(x_val, 0.0));
-      x_val -= _step;
-    }
-    // Fill function
-    while (x_val >= value1) {
-      y_val = function(x_val);
-      _elements.insert(_elements.begin(), Point(x_val, y_val));
-      x_val -= _step;
-    }
+    // Set s_points and functions
 
-    // Fill to the right
-    x_val = _elements.back().first + _step;
-    // Fill with zeros
-    while (x_val < value1) {
-      _elements.push_back(Point(x_val, 0.0));
-
-      std::cerr << x_val << '\t' << 0.0 << '\n';
-
-      x_val += _step;
+    // Find position of value1
+    R_vec::iterator it_s_points =
+        std::lower_bound(_s_points.begin(), _s_points.end(), value1);
+    size_t pos = it_s_points - _s_points.begin();
+    // Put it there if its not already
+    if (*it_s_points != value1)
+      it_s_points = ++_s_points.insert(it_s_points, value1);
+    // Insert function
+    _functions.insert(_functions.begin() + pos, function);
+    // Slice previous function
+    _functions.insert(_functions.begin() + pos + 1, _functions[pos - 1]);
+    // Delete everything until value2
+    while (it_s_points !=
+           std::upper_bound(_s_points.begin(), _s_points.end(), value2)) {
+      it_s_points = _s_points.erase(it_s_points);
+      _functions.erase(_functions.begin() + pos + 1);
     }
-    // Fill function
-    while (x_val <= value2) {
-      y_val = function(x_val);
+    // Put it there if its not already
+    if (*it_s_points != value2)
+      it_s_points = _s_points.insert(it_s_points, value2);
+
+    // Set step
+    _step = (_s_points.back() - _s_points.front()) / (n_points - 1);
+
+    // Fill elements
+    _elements.clear();
+    // Fist Point
+    x_0 = _s_points.front();
+    y_val = _functions[0](x_0);
+    _elements.push_back(Point(x_0, y_val));
+    // Other points
+    for (i = 1; i < n_points; i++) {
+      x_val = x_0 + i * _step;
+      j = std::lower_bound(_s_points.begin(), _s_points.end(), x_val) -
+          _s_points.begin();
+      y_val = _functions[j - 1](x_val);
+      std::cerr << x_val << '\t' << y_val << '\n';
       _elements.push_back(Point(x_val, y_val));
-      x_val += _step;
-    }
-
-    // Set slice points
-
-    R_vec::iterator it_s_points;
-    typename Func_vec::iterator it_func;
-
-    // Find lower bound
-    it_s_points = std::lower_bound(_s_points.begin(), _s_points.end(), value1);
-    if (_lower_bound(value1) != _elements.begin()) {
-      it_s_points = _s_points.insert(it_s_points, value1);
-      size_t pos1 = std::distance(_s_points.begin(), it_s_points);
-    }
-
-    // Find upper bound
-    if (it_s_points != _s_points.end()) { // There are s_points already
-      // Test subsequent addresses
-      bool added = false;
-      for (++it_s_points; it_s_points != _s_points.end();) {
-        if (*it_s_points > value2) {
-          it_s_points = _s_points.insert(it_s_points, value2);
-          size_t pos2 = std::distance(_s_points.begin(), it_s_points);
-          added = true;
-          break;
-        }
-        it_s_points = _s_points.erase(it_s_points);
-      }
-      if (!added && (value2 < _elements.back().first))
-        _s_points.push_back(value2);
-    } else {
-      // No slice points before
-      _functions.insert(_functions.begin(), function);
-      if (value2 < _elements.back().first)
-        _s_points.push_back(value2);
-      else
-        _functions.erase(_functions.end());
     }
   }
 

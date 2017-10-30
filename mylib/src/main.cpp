@@ -10,7 +10,7 @@ int main() {
   line1.print_points();
   line1.print_s_points();
 
-  line1.set_function(-12.5, -6.4, y1, -1);
+  line1.set_function(2.5, 6.5, y1, -1);
 
   line1.print_points();
   line1.print_s_points();
@@ -27,9 +27,14 @@ int main() {
   std::cout << "Line.x() = " << line1.x() << '\n';
   std::cout << "Line.y() = " << line1.y() << '\n';
 
-  line1(8);
+  std::cout << "line1(6)" << '\n';
+  line1(6);
+
   std::cout << "Line.x() = " << line1.x() << '\n';
   std::cout << "Line.y() = " << line1.y() << '\n';
+
+  std::cout << "Line.x(4) = " << line1.x(4) << '\n';
+  std::cout << "Line.y(4) = " << line1.y(4) << '\n';
 
   return 0;
 }
