@@ -353,8 +353,8 @@ public:
         std::swap(value1, value2);
 
       // Clear analytical function
-      Function function = [](real x) { return 0; };
-      _functions.pushback(function);
+      Function zero_function = [](real x) { return 0; };
+      _functions.pushback(zero_function);
 
       // Add points
       _elements.push_back(Point(value1, 0.0));
@@ -383,8 +383,8 @@ public:
       size_t i;
 
       // Clear analytical function
-      Function function = [](real x) { return 0; };
-      _functions.pushback(function);
+      Function zero_function = [](real x) { return 0; };
+      _functions.pushback(zero_function);
 
       // Set step
       _step = (value2 - value1) / (n_points - 1);
@@ -587,7 +587,7 @@ public:
 
     // Fill elements
     _elements.clear();
-    // Fist Point
+    // First Point
     x_0 = _s_points.front();
     y_val = _functions[0](x_0);
     _elements.push_back(Point(x_0, y_val));
@@ -597,7 +597,6 @@ public:
       j = std::lower_bound(_s_points.begin(), _s_points.end(), x_val) -
           _s_points.begin();
       y_val = _functions[j - 1](x_val);
-      std::cerr << x_val << '\t' << y_val << '\n';
       _elements.push_back(Point(x_val, y_val));
     }
   }
@@ -612,25 +611,121 @@ public:
       if (value1 > value2)
         std::swap(value1, value2);
 
-      size_t i;
-      real x_val;
+      // Auxialiry variables
+      size_t pos, i, j;
+      real x_0, x_val;
+      T y_val;
+
+      // Store number of points
+      size_t n_points = _elements.size();
+
+      // Set s_points
+
+      // Delete first s_point
+      _s_points.erase(_s_points.begin());
+      // Find position of value1
+      R_vec::iterator it_s_points =
+          std::lower_bound(_s_points.begin(), _s_points.end(), value1);
+      pos = it_s_points - _s_points.begin();
+      // Put it there if its not already
+      if (*it_s_points != value1)
+        it_s_points = _s_points.insert(it_s_points, value1);
+      // Delete everything before that
+      _s_points.erase(_s_points.begin(), it_s_points);
+      _functions.erase(_functions.begin(), _functions.begin() + pos);
+
+      // Delete last s_point
+      _s_points.erase(_s_points.end() - 1);
+      // Find position of value2
+      it_s_points =
+          std::upper_bound(_s_points.begin(), _s_points.end(), value2);
+      pos = it_s_points - _s_points.begin();
+      // Put it there if its not already
+      if (*it_s_points != value2)
+        it_s_points = _s_points.insert(it_s_points, value2);
+      // Delete everything after that
+      _s_points.erase(it_s_points + 1, _s_points.end());
+      _functions.erase(_functions.begin() + pos, _functions.end());
+
+      // Set step
+      _step = (value2 - value1) / (n_points - 1);
+
+      // Fill elements
+      _elements.clear();
+      // Fist Point
+      x_0 = _s_points.front();
+      y_val = _functions[0](x_0);
+      _elements.push_back(Point(x_0, y_val));
+      // Other points
+      for (i = 1; i < n_points; i++) {
+        x_val = x_0 + i * _step;
+        j = std::lower_bound(_s_points.begin(), _s_points.end(), x_val) -
+            _s_points.begin() - 1;
+        y_val = _functions[j](x_val);
+        //  std::cerr << x_val << '\t' << y_val << '\n';
+        _elements.push_back(Point(x_val, y_val));
+      }
+    } catch (...) {
+      std::cerr << "Error: endpoints are equal\n";
+    }
+  }
+
+  void set_n_points(size_t n_points) {
+    try {
+      if (n_points < 2)
+        throw 0;
+
+      // Auxialiry variables
+      size_t i, j;
+      real x_0, x_val;
       T y_val;
 
       // Set step
-      _step = (value2 - value1) / (_elements.size() - 1);
+      _step = (_s_points.back() - _s_points.front()) / (n_points - 1);
 
-      // Set pointer
-      _ptr = _elements.begin();
+      // Fill elements
+      _elements.clear();
+      // Fist Point
+      x_0 = _s_points.front();
+      y_val = _functions[0](x_0);
+      _elements.push_back(Point(x_0, y_val));
+      // Other points
+      for (i = 1; i < n_points; i++) {
+        x_val = x_0 + i * _step;
+        j = std::lower_bound(_s_points.begin(), _s_points.end(), x_val) -
+            _s_points.begin() - 1;
+        y_val = _functions[j](x_val);
+        //  std::cerr << x_val << '\t' << y_val << '\n';
+        _elements.push_back(Point(x_val, y_val));
+      }
+
+    } catch (...) {
+      std::cerr << "Error: at least two points are required\n";
     }
+  }
+
+  void set_zero(real value1, real value2) {
+    Function zero_function = [](real x) -> T { return 0; };
+    // set_function(value1, value2, zero_function);
   }
 
   // Getters
 
   // Analytical function associated
-  T function(real x) {
-    if (_function == nullptr)
-      return 0;
-    return _function(x, args...);
+  T f(real x) {
+
+    // Check boundaries
+    if (x <= _s_points.back())
+      return _functions.back()(x);
+    if (x >= _s_points.front())
+      return _functions.front()(x);
+
+    R_vec::iterator it_s_points =
+        std::lower_bound(_s_points.begin(), _s_points.end(), x);
+
+    size_t j = it_s_points - _s_points.begin() - 1;
+
+    return _functions[j](x);
   }
 
   // Get length
@@ -648,7 +743,7 @@ public:
 
   // Show all points in order for debugging
   void print_points(void) {
-    std::cerr << "\nprint_points:" << '\n';
+    std::cerr << "print_points:" << '\n';
     // typename Map::iterator it;
     for (const auto &element : _elements)
       std::cerr << element.first << '\t' << element.second << '\n';
@@ -657,11 +752,24 @@ public:
 
   // Show all s_points in order for debugging
   void print_s_points(void) {
-    std::cerr << "\nprint_s_points:" << '\n';
+    std::cerr << "print_s_points:" << '\n';
     // typename Map::iterator it;
     for (const auto &s_point : _s_points)
       std::cerr << s_point << '\n';
     std::cerr << "\n";
+  }
+
+  // Debug
+  void debug(void) {
+    std::cerr << "DEBUG LOG\n\n";
+
+    std::cerr << "number of points = " << n_points() << '\n';
+    std::cerr << "number of functions = " << n_func() << '\n';
+
+    print_points();
+    print_s_points();
+
+    std::cerr << "length = " << length() << "\n\n";
   }
 
 }; // Line
