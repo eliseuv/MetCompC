@@ -221,58 +221,6 @@ struct Measurement {
 
 }; // Measurement
 
-/* Linearly spaced line */
-class Linspace {
-
-  // Endpoints
-  real _start, _end;
-  // Number of points
-  size_t _n_points;
-  // Size of each cell
-  real _step;
-
-  // Position and value
-  size_t _pos;
-  real _val;
-
-public:
-  // Constructors
-
-  // Only endpoints given
-  Linspace(real, real);
-
-  // Endpoints and number of points given
-  Linspace(real, real, size_t);
-
-  // Endpoints and step given
-  Linspace(real, real, real);
-
-  // Setters
-
-  // Set Endpoints
-  void set_endpoints(real, real);
-
-  // Set number of points
-  void set_n_points(size_t);
-
-  // Set step size
-  void set_step(real);
-
-  // Getters
-
-  // Get start
-  real start(void);
-
-  // Get end
-  real end(void);
-
-  // Get number of points
-  size_t n_points(void);
-
-  // Get step
-  real step(void);
-};
-
 /* Real function
   f : R x Ts... -> T
  */
@@ -773,33 +721,6 @@ public:
   }
 
 }; // Line
-
-/* Multidimensional real domain */
-/*
-class Domain {
-
-  // Domain imension
-  size_t _dim;
-  std::vector<Line> _lines;
-
-public:
-  // Constructors
-
-  // One line given
-  Domain(Line);
-
-  // Getters
-
-  // Get Dimension
-  size_t dim(void);
-
-  // Debugging
-
-  // Print all points in each line
-  void print_lines(void);
-
-}; // Multidimensional domain
-*/
 
 // Differential Equations
 
