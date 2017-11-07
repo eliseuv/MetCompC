@@ -16,5 +16,6 @@ int main() {
   while (1) {
     mysys.out_gnuplot();
     mysys.update(dt);
+    // mysys.debug();
   }
 }
