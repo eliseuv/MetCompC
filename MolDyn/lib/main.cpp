@@ -2,23 +2,30 @@
 
 int main() {
 
-  // Parameters
+  // Argon parameters
   const size_t dim = 2, n_particles = 100;
-  double M_at = 17, T_0 = 300, rho = 1;
-  double epsilon = 1e-6, sigma = 1e-3;
-
-  double mass = M_at / (N_A * 12);
-  double dt = 1e-12;
+  double epsilon = 119.8 * K_B; // K
+  double sigma = 3.405e-10;     // m
+  double M_at = 3.994e-2;       // kg/mol
+  double T_0 = 300;             // K
+  double rho = 1680;            // Kg/m3
+  double mass = M_at / N_A;     // Kg
+  double dt = 1e-15;            // s
 
   // Dimensionless variables
   T_0 *= K_B / epsilon;
   rho *= std::pow(sigma, 3);
   dt *= std::sqrt(epsilon / (mass * std::pow(sigma, 2)));
-  epsilon = 1;
-  sigma = 1;
+
+  // Set up Interaction
+  Lennard_Jones lj_int(epsilon, sigma), lj_test(1, 1);
+
+  // lj_test.plot_potential(100, 1, 3);
 
   // Create system
-  NewtonSys<Lennard - Jones> mysys(dim, n_particles, M_at, T_0, rho, walls);
+  NewtonSys<Lennard_Jones> mysys(dim, n_particles, mass, T_0, rho, periodic,
+                                 lj_int);
+
   // Set up model
   // mysys.model.set_epsilon(epsilon);
   // mysys.model.set_sigma(sigma);

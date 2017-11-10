@@ -39,8 +39,14 @@ public:
   // Default Constructor
   Ideal_Gas(void) {}
   // Potential energy
+  double potential(double) { return 0; }
+  double potential(std::vector<double> &) { return 0; }
   double potential(Particle, Particle) { return 0; }
   // Force
+  double k_force(double) { return 0; }
+  std::vector<double> force(std::vector<double> &s) {
+    return std::vector<double>(s.size());
+  }
   std::vector<double> force(Particle part1, Particle) {
     return std::vector<double>(part1.dim);
   }
@@ -56,23 +62,33 @@ const std::string Ideal_Gas::name = "Ideal gas";
 class Lennard_Jones {
 
   // Parameters
-  double _epsilon, _sigma6;
+  double _epsilon, _sigma6, _sigma12, _sigma8, _sigma14;
 
 public:
   // Name
   static const std::string name;
   // Default Constructor
-  Lennard_Jones() : _epsilon(1e-5), _sigma6(std::pow(1e-5, 6)) {}
-  // Constructor
+  Lennard_Jones()
+      : _epsilon(1), _sigma6(1), _sigma12(1), _sigma8(1), _sigma14(1) {}
+  // Constructor with parameters
   Lennard_Jones(double epsilon, double sigma)
-      : _epsilon(epsilon), _sigma6(std::pow(sigma, 6)) {}
+      : _epsilon(epsilon), _sigma6(std::pow(sigma, 6)),
+        _sigma12(std::pow(sigma, 12)), _sigma8(std::pow(sigma, 8)),
+        _sigma14(std::pow(sigma, 14)) {}
   // Set parameters
   void set_epsilon(double);
   void set_sigma(double);
   // Potential energy
+  double potential(double);
+  double potential(std::vector<double> &);
   double potential(Particle, Particle);
   // Force
+  double k_force(double);
+  std::vector<double> force(std::vector<double> &);
   std::vector<double> force(Particle, Particle);
+  // Output
+  void plot_potential(size_t, double, double);
+  void plot_force(size_t, double, double);
 };
 
 // Lennard_Jones model
@@ -112,9 +128,9 @@ public:
 
   // Constructor
   // IN: number of dimensions, number of particles, mass (atomic units),
-  // initial temperature, density, boundaries
+  // initial temperature, density, boundaries, interaction model
   // Uniform dist positions, normal dist velocities
-  NewtonSys(size_t, size_t, double, double, double, Bound);
+  NewtonSys(size_t, size_t, double, double, double, Bound, Model);
 
   // Getters
 
@@ -153,7 +169,35 @@ const std::string Lennard_Jones::name = "Lennard-Jones";
 
 // Set parameters
 void Lennard_Jones::set_epsilon(double epsilon) { _epsilon = epsilon; }
-void Lennard_Jones::set_sigma(double sigma) { _sigma6 = std::pow(sigma, 6); }
+void Lennard_Jones::set_sigma(double sigma) {
+  _sigma6 = std::pow(sigma, 6);
+  _sigma12 = std::pow(sigma, 12);
+  _sigma8 = std::pow(sigma, 8);
+  _sigma14 = std::pow(sigma, 14);
+}
+
+// Lennard-Jones potential energy on a given distance squared
+double Lennard_Jones::potential(double d2) {
+  return (4 * _epsilon *
+          ((_sigma12 / std::pow(d2, 6)) - (_sigma6 / std::pow(d2, 3))));
+}
+
+// Potential
+
+// Lennard-Jones potential energy for a given separation vector
+double Lennard_Jones::potential(std::vector<double> &s) {
+  // Number of dimensions
+  size_t dim = s.size();
+  // Dummy indices
+  size_t i;
+  // Distance
+  double d2 = 0;
+  // Calculate distance
+  for (i = 0; i < dim; i++)
+    d2 += std::pow(s[i], 2);
+  // Calculate energy
+  return (potential(d2));
+}
 
 // Lennard-Jones potential energy of particle1 due to particle1
 double Lennard_Jones::potential(Particle part1, Particle part2) {
@@ -163,17 +207,46 @@ double Lennard_Jones::potential(Particle part1, Particle part2) {
   size_t i;
   // Distance
   double d2 = 0;
-  // Potential energy
-  double E_p;
 
   // Calculate distance
   for (i = 0; i < dim; i++)
     d2 += std::pow(part1.x[i] - part2.x[i], 2);
   // Calculate energy
-  E_p =
-      4 * _epsilon *
-      ((std::pow(_sigma6, 2) / std::pow(d2, 6)) - (_sigma6 / std::pow(d2, 3)));
-  return E_p;
+  return (potential(d2));
+}
+
+// Force
+
+// Lennard-Jones force modulus for a given distance squared
+double Lennard_Jones::k_force(double d2) {
+  return (48 * _epsilon *
+          ((_sigma14 / std::pow(d2, 7)) - 0.5 * (_sigma8 / std::pow(d2, 4))));
+}
+
+// Lennard-Jones force for a given separation vector
+std::vector<double> Lennard_Jones::force(std::vector<double> &s) {
+
+  // Number of dimensions
+  size_t dim = s.size();
+  // Dummy variables
+  size_t i, j;
+  // Distance
+  double d2 = 0;
+  // Potential constant
+  double k;
+  // Force
+  std::vector<double> F(dim);
+
+  // Calculate distance
+  for (i = 0; i < dim; i++)
+    d2 += std::pow(s[i], 2);
+
+  // Calculate multiplier
+  k = k_force(d2);
+  // Calculate force
+  for (i = 0; i < dim; i++)
+    F[i] = k * s[i];
+  return F;
 }
 
 // Lennard-Jones force on particle1 due to particle2
@@ -197,12 +270,56 @@ std::vector<double> Lennard_Jones::force(Particle part1, Particle part2) {
     d2 += std::pow(s[i], 2);
   }
   // Calculate multiplier
-  k = (48 * _epsilon / d2) * ((std::pow(_sigma6, 2) / std::pow(d2, 6)) -
-                              (0.5 * _sigma6 / std::pow(d2, 3)));
+  k = k_force(d2);
   // Calculate force
   for (i = 0; i < dim; i++)
     F[i] = k * s[i];
   return F;
+}
+
+// Output
+
+// Plot the Lennard-Jones potential
+void Lennard_Jones::plot_potential(size_t n_points, double point1,
+                                   double point2) {
+
+  size_t i;
+  double d, step = (point2 - point1) / n_points;
+
+  // Setup GNUPLOT
+  std::cout << "set key off" << std::endl;
+  std::cout << "set xrange [" << point1 << ':' << point2 << ']' << std::endl;
+  // Call interactive terminal
+  std::cout << "plot \"-\" w l" << std::endl;
+
+  d = point1 - step;
+  for (i = 0; i < n_points; i++) {
+    d += step;
+    std::cout << d << "\t\t" << potential(d * d) << std::endl;
+  }
+
+  std::cout << 'e' << std::endl;
+}
+
+// Plot the Lennard-Jones force modulus
+void Lennard_Jones::plot_force(size_t n_points, double point1, double point2) {
+
+  size_t i;
+  double d, step = (point2 - point1) / n_points;
+
+  // Setup GNUPLOT
+  std::cout << "set key off" << std::endl;
+  std::cout << "set xrange [" << point1 << ':' << point2 << ']' << std::endl;
+  // Call interactive terminal
+  std::cout << "plot \"-\" w l" << std::endl;
+
+  d = point1 - step;
+  for (i = 0; i < n_points; i++) {
+    d += step;
+    std::cout << d << "\t\t" << k_force(d * d) << std::endl;
+  }
+
+  std::cout << 'e' << std::endl;
 }
 
 // Lennard-Jones model
@@ -211,11 +328,12 @@ std::vector<double> Lennard_Jones::force(Particle part1, Particle part2) {
 
 // Constructor
 template <typename Model>
-NewtonSys<Model>::NewtonSys(size_t dim, size_t n_particles, double M_at,
-                            double T_init, double rho, Bound bound)
-    : _dim(dim), _size(_dim), _time(0), _n_particles(n_particles),
-      _mass(M_at / (N_A * 12)), _particles(_n_particles, Particle(_dim, _mass)),
-      model(Model()), _bound(bound) {
+NewtonSys<Model>::NewtonSys(size_t dim, size_t n_particles, double mass,
+                            double T_init, double rho, Bound bound,
+                            Model model_)
+    : _dim(dim), _size(_dim), _time(0), _n_particles(n_particles), _mass(mass),
+      _particles(_n_particles, Particle(_dim, _mass)), _bound(bound),
+      model(model_) {
 
   // Dummy indices
   size_t i, j, k;
@@ -227,7 +345,6 @@ NewtonSys<Model>::NewtonSys(size_t dim, size_t n_particles, double M_at,
   // Container size
   for (i = 0; i < _dim; i++) {
     _size[i] = std::pow(_n_particles * _mass / rho, 1.0 / _dim);
-    //_size[i] = std::pow(rho * _n_particles, 1.0 / _dim);
   }
 
   // Random number generator
@@ -331,8 +448,8 @@ template <typename Model> void NewtonSys<Model>::vverlet(double dt) {
 
   // Dummy indices
   size_t i, j, k;
-  // Temporary acceleration
-  std::vector<double> a_temp(_dim);
+  // Temporary variables
+  std::vector<double> a_temp(_dim), s_temp(_dim);
   // Next acceleration
   std::vector<std::vector<double>> a_next(_n_particles,
                                           std::vector<double>(_dim));
@@ -341,13 +458,16 @@ template <typename Model> void NewtonSys<Model>::vverlet(double dt) {
   _time += dt;
 
   // Update positions
-  for (j = 0; j < _n_particles; j++) {
-    for (i = 0; i < _dim; i++) {
+  for (j = 0; j < _n_particles; j++)
+    for (i = 0; i < _dim; i++)
       _particles[j].x[i] +=
           _particles[j].v[i] * dt + 0.5 * _particles[j].a[i] * dt * dt;
-      // Check boundaries
-      switch (_bound) {
-      case walls:
+
+  // Check boundaries
+  switch (_bound) {
+  case walls:
+    for (j = 0; j < _n_particles; j++) {
+      for (i = 0; i < _dim; i++) {
         if (_particles[j].x[i] < 0) {
           _particles[j].x[i] = -_particles[j].x[i];
           _particles[j].v[i] = -_particles[j].v[i];
@@ -355,16 +475,59 @@ template <typename Model> void NewtonSys<Model>::vverlet(double dt) {
           _particles[j].x[i] = 2 * _size[i] - _particles[j].x[i];
           _particles[j].v[i] = -_particles[j].v[i];
         }
-        break;
-
-      case periodic:
+      }
+    }
+    break;
+  case periodic:
+    for (j = 0; j < _n_particles; j++) {
+      for (i = 0; i < _dim; i++) {
         if (_particles[j].x[i] < 0)
           _particles[j].x[i] = _size[i] - _particles[j].x[i];
         else if (_particles[j].x[i] > _size[i])
           _particles[j].x[i] = -(_particles[j].x[i] - _size[i]);
-        break;
       }
     }
+    break;
+  }
+
+  // Calculate new acceleration and update velocities
+  switch (_bound) {
+  case walls:
+    for (j = 0; j < _n_particles; j++) {
+      for (k = j + 1; k < _n_particles; k++) {
+        a_temp = model.force(_particles[j], _particles[k]);
+        for (i = 0; i < _dim; i++) {
+          a_temp[i] /= _mass;
+          a_next[j][i] += a_temp[i];
+          a_next[k][i] -= a_temp[i];
+        }
+      }
+      for (i = 0; i < _dim; i++) {
+        _particles[j].v[i] += 0.5 * (_particles[j].a[i] + a_next[j][i]) * dt;
+        _particles[j].a[i] = a_next[j][i];
+      }
+    }
+    break;
+  case periodic:
+    for (j = 0; j < _n_particles; j++) {
+      for (k = j + 1; k < _n_particles; k++) {
+        for (i = 0; i < _dim; i++) {
+          s_temp[i] = _particles[j].x[i] - _particles[k].x[i];
+          s_temp[i] = fmod(s_temp[i], _size[i] / 2);
+        }
+        a_temp = model.force(s_temp);
+        for (i = 0; i < _dim; i++) {
+          a_temp[i] /= _mass;
+          a_next[j][i] += a_temp[i];
+          a_next[k][i] -= a_temp[i];
+        }
+      }
+      for (i = 0; i < _dim; i++) {
+        _particles[j].v[i] += 0.5 * (_particles[j].a[i] + a_next[j][i]) * dt;
+        _particles[j].a[i] = a_next[j][i];
+      }
+    }
+    break;
   }
 
   // Calculate new acceleration and update velocities
