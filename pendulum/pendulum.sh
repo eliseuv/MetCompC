@@ -5,4 +5,4 @@ clear
 
 icpc -Wall -O3 ./pendulum.cpp -o ./pendulum
 
-./pendulum | gnuplot -p
+./pendulum | gnuplot

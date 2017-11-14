@@ -37,7 +37,7 @@ using namespace std;
 #else
 
 template <typename T>
-class Vector>{
+class Vector{
 
   int _size;  // Size of vector
   T *_ptr;

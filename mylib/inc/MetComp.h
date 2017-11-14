@@ -8,6 +8,7 @@
 #include <iterator>
 #include <map>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -171,6 +172,9 @@ struct complex {
 
 // Costant imaginary unit
 const complex Iu(0, 1);
+
+// Complex square root
+complex sqrt(complex);
 
 // Complex exponential
 complex exp(complex);
@@ -484,20 +488,22 @@ public:
   template <typename... Ts> void set_function(T (*f)(real, Ts...), Ts... args) {
     // Prepare analytical function
     Function function = [f, args...](real x) { return f(x, args...); };
+    _functions.clear();
+    _functions.push_back(function);
+    // Clear slice points
+    _s_points.clear();
+    _s_points.push_back(_elements.front().first);
+    _s_points.push_back(_elements.back().first);
     // Set values
     for (auto &element : _elements)
       element.second = function(element.first);
   }
 
-  // Set analytical function on interval
-  template <typename... Ts>
-  void set_function(real value1, real value2, T (*f)(real, Ts...), Ts... args) {
+  // Set analytical function on intervals (std::function)
+  void set_function(real value1, real value2, Function function) {
     // Sort
     if (value1 > value2)
       std::swap(value1, value2);
-
-    // Prepare analytical function
-    Function function = [f, args...](real x) { return f(x, args...); };
 
     // Store number of points
     size_t n_points = _elements.size();
@@ -509,13 +515,12 @@ public:
 
     // Set s_points and functions
 
-    // Find position of value1
+    // Find slice point >= value1
     R_vec::iterator it_s_points =
         std::lower_bound(_s_points.begin(), _s_points.end(), value1);
     size_t pos = it_s_points - _s_points.begin();
-    // Put it there if its not already
-    if (*it_s_points != value1)
-      it_s_points = ++_s_points.insert(it_s_points, value1);
+    // Put it there
+    it_s_points = ++_s_points.insert(it_s_points, value1);
     // Insert function
     _functions.insert(_functions.begin() + pos, function);
     // Slice previous function
@@ -526,9 +531,8 @@ public:
       it_s_points = _s_points.erase(it_s_points);
       _functions.erase(_functions.begin() + pos + 1);
     }
-    // Put it there if its not already
-    if (*it_s_points != value2)
-      it_s_points = _s_points.insert(it_s_points, value2);
+    // Put it there
+    it_s_points = _s_points.insert(it_s_points, value2);
 
     // Set step
     _step = (_s_points.back() - _s_points.front()) / (n_points - 1);
@@ -547,6 +551,16 @@ public:
       y_val = _functions[j - 1](x_val);
       _elements.push_back(Point(x_val, y_val));
     }
+  }
+
+  // Set analytical function on interval (pointer to function)
+  template <typename... Ts>
+  void set_function(real value1, real value2, T (*f)(real, Ts...), Ts... args) {
+
+    // Prepare analytical function
+    Function function = [f, args...](real x) { return f(x, args...); };
+    // Call main function
+    set_function(value1, value2, function);
   }
 
   // Set endpoints
@@ -654,7 +668,7 @@ public:
 
   void set_zero(real value1, real value2) {
     Function zero_function = [](real x) -> T { return 0; };
-    // set_function(value1, value2, zero_function);
+    set_function(value1, value2, zero_function);
   }
 
   // Getters
@@ -676,10 +690,21 @@ public:
     return _functions[j](x);
   }
 
+  // Get start point
+  real start(void) { return _elements.front().first; }
+  // Get final point
+  real end(void) { return _elements.back().first; }
+
   // Get length
   real length(void) {
     return (_elements.back().first - _elements.front().first);
   }
+
+  // Set Step
+  real step(void) { return _step; }
+
+  // Set y-value
+  void set_y(size_t index, T value) { _elements[index].second = value; }
 
   // Get number of points
   size_t n_points(void) { return _elements.size(); }
@@ -694,7 +719,8 @@ public:
     std::cerr << "print_points:" << '\n';
     // typename Map::iterator it;
     for (const auto &element : _elements)
-      std::cerr << element.first << '\t' << element.second << '\n';
+      std::cerr << element.first << "\t\t" << std::string(element.second)
+                << '\n';
     std::cerr << "\n";
   }
 
@@ -719,10 +745,149 @@ public:
 
     std::cerr << "length = " << length() << "\n\n";
   }
-
 }; // Line
 
+/*    1D Quantum system     */
+
+class QuantumSys {
+
+  Line<real> _pot;
+  Line<complex> _psi;
+
+public:
+  // Constructor
+  QuantumSys(Line<real> pot, Line<complex> psi0) : _pot(pot), _psi(psi0) {}
+
+  // Integrate
+  real integral(void) {
+
+    size_t n_points = _psi.n_points();
+    double dx = _psi.step();
+
+    size_t i;
+
+    double sum = 0;
+
+    for (i = 0; i < n_points; i++)
+      sum += dx * _psi[i].second.abs2();
+
+    return sum;
+  }
+
+  // Normalize
+  void normalize(void) {
+
+    size_t i;
+    size_t n_points = _psi.n_points();
+    complex temp(0, 0);
+
+    real sum = std::sqrt(integral());
+
+    for (i = 0; i < n_points; i++) {
+      temp = _psi[i].second;
+      _psi.set_y(i, temp / sum);
+    }
+  }
+
+  // Update
+
+  // Euler method
+  void Euler(double dt) {
+    size_t i;
+
+    size_t n_points = _psi.n_points();
+    double dx = _psi.step();
+
+    double kappa = dt / (2 * dx * dx);
+
+    complex temp(0, 0);
+
+    for (i = 1; i < n_points - 1; i++) {
+      temp = complex(1, -2 * kappa - dt * _pot[i].second) * _psi[i].second;
+      temp =
+          temp + complex(0, kappa) * (_psi[i - 1].second + _psi[i + 1].second);
+      _psi.set_y(i, temp);
+    }
+  }
+
+  // Crank-Nicolson method
+  void CrakNicolson(double dt) {
+
+    size_t i, j, k;
+
+    size_t n_points = _psi.n_points();
+    size_t n = n_points - 2;
+    double dx = _psi.step();
+
+    double kappa = dt / (2 * dx * dx);
+    complex beta(0, -kappa / 2);
+    std::vector<complex> B(n), alpha(n), chi(n), gamma(n), phi(n);
+
+    complex temp(0, 0);
+
+    // Fill B
+    for (i = 0; i < n; i++) {
+      B[i] = kappa + dt * _pot[i + 1].second / 2;
+    }
+
+    // Fill alpha
+    for (i = 0; i < n; i++)
+      alpha[i] = complex(1, -B[i]);
+
+    // Fill chi
+    for (i = 0; i < n; i++) {
+      chi[i] = alpha[i] * _psi[i + 1].second +
+               beta * (_psi[i].second + _psi[i + 2].second);
+    }
+
+    // Calculate gamma
+    gamma[0] = beta / alpha[0];
+    for (i = 1; i < n; i++)
+      gamma[i] = beta / (alpha[j] - beta * gamma[i - 1]);
+
+    // Calculate phi
+    phi[0] = (chi[0] - beta * _psi[0].second) / alpha[0];
+    for (i = 1; i < n - 1; i++)
+      phi[i] = (chi[i] - beta * phi[i - 1]) / (alpha[i] - beta * gamma[i - 1]);
+    phi[n] = (chi[n] - beta * (_psi[n_points - 1].second + phi[n - 1])) /
+             (alpha[n] - beta * gamma[n - 1]);
+
+    // Update psi
+    _psi.set_y(n_points - 1, phi[n]);
+    for (i = n_points - 2; i > 0; i--) {
+      _psi.set_y(i, phi[i - 1] - gamma[i - 1] * _psi[i + 1].second);
+    }
+  }
+
+  // Output
+
+  // Output modulus sqrd of wavefunction to gnuplot interactive terminal
+  void out_gnuplot(void) {
+
+    size_t j, n_points = _psi.n_points();
+
+    // Setup GNUPLOT
+    std::cout << "set key off" << std::endl;
+    std::cout << "set xrange [" << _psi.start() << ':' << _psi.end() << ']'
+              << std::endl;
+    std::cout << "set yrange [" << 0 << ":]" << std::endl;
+
+    // Call interactive terminal
+    // std::cout << "plot \"-\" w p pt 7 ps 0.5" << std::endl;
+    std::cout << "plot \"-\" w l" << std::endl;
+
+    for (j = 0; j < n_points; j++)
+      std::cout << _psi[j].first << "\t\t" << _psi[j].second.abs2() << '\n';
+
+    std::cout << 'e' << std::endl;
+  }
+};
+
+// 1D Quantum system
+
 // Differential Equations
+
+//
 
 /*  Runge-Kutta 4th order method
 

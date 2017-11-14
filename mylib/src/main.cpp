@@ -1,33 +1,42 @@
 #include "MetComp.h"
 
-real y1(real, int);
-real y2(real);
+complex psi0(real);
+real V(real);
 
 int main() {
 
-  Line<real> line1(0, 10, 11, y1, 5);
+  size_t n_points = 1001;
+  real x1 = -5, x2 = 5;
+  real dt = 1e-5;
 
-  // line1.print_points();
-  // line1.print_s_points();
+  Line<real> potential(x1, x2, n_points, V);
+  Line<complex> psi(x1, x2, n_points, psi0);
 
-  line1.set_function(2.5, 6.5, y1, -1);
+  psi.set_y(0, complex(0, 0));
+  psi.set_y(n_points - 1, complex(0, 0));
 
-  // line1.print_points();
-  // line1.print_s_points();
+  QuantumSys particle(potential, psi);
 
-  line1.set_endpoints(-5, 16);
+  psi.debug();
 
-  line1.debug();
+  std::cerr << "SUM = " << particle.integral() << '\n';
+  particle.normalize();
+  std::cerr << "SUM = " << particle.integral() << '\n';
 
-  line1.set_zero(13, 16);
-
-  line1.debug();
-
-  std::cout << "f(30) = " << line1.f(30) << '\n';
+  while (1) {
+    particle.out_gnuplot();
+    particle.Euler(dt);
+    std::cerr << "SUM = " << particle.integral() << '\n';
+    std::cin.get();
+  }
 
   return 0;
 }
 
-real y1(real x, int k) { return k * x * x; }
+complex psi0(real x) {
+  complex y(0, 0);
+  y = exp(-std::pow(x + 1, 2));
+  return y;
+}
 
-real y2(real x) { return sin(x); }
+real V(real x) { return x * x; }

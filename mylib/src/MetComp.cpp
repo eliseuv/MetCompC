@@ -178,6 +178,20 @@ complex::operator std::string() const {
 
 /* Complex functions */
 
+// Square root of a real number
+// complex sqrt(real val) {
+//   if (val < 0)
+//     return Iu * std::sqrt(-val);
+//   else
+//     return std::sqrt(val);
+// }
+
+// Complex square root
+complex sqrt(complex val) {
+  complex result(val.phi() / 2);
+  return result * std::sqrt(val.abs());
+}
+
 // Complex exponential
 complex exp(complex val) {
   complex result(std::exp(-val.im) * std::cos(val.re),
