@@ -1,2 +1,3 @@
-# Computational Physics
-# (Métodos Computacionas da Física C)
+# Métodos Computacionais C
+
+Programas utilizados no curso de Métodos Computacionais C.
